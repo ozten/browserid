@@ -1,0 +1,25 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#!/usr/bin/env node
+
+const
+primary = require('../lib/browserid/primary'),
+logging = require('../lib/logging.js');
+
+logging.enableConsoleLogging();
+
+if (process.argv.length !== 3) {
+  console.log('Checks to see if a domain has a proper declaration of support as a browserid primary');
+  console.log('Usage:', process.argv[1], '<domain>');
+  process.exit(1);
+}
+
+primary.checkSupport(process.argv[2], function(err, rv) {
+  if (err) {
+    process.stderr.write("error: " + err + "\n");
+    process.exit(1);
+  }
+  console.log(rv);
+});

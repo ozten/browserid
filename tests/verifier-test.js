@@ -1,39 +1,8 @@
 #!/usr/bin/env node
 
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla BrowserID.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2011
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 require('./lib/test_env.js');
 
@@ -49,7 +18,8 @@ jwt = require('jwcrypto/jwt.js'),
 vep = require('jwcrypto/vep.js'),
 jwcert = require('jwcrypto/jwcert.js'),
 http = require('http'),
-querystring = require('querystring');
+querystring = require('querystring'),
+path = require('path');
 
 var suite = vows.describe('verifier');
 
@@ -73,7 +43,7 @@ suite.addBatch({
       email: TEST_EMAIL,
       site: TEST_DOMAIN
     }),
-    "works":     function(r, err) {
+    "works":     function(err, r) {
       assert.equal(r.code, 200);
     }
   }
@@ -99,7 +69,7 @@ suite.addBatch({
         pass: TEST_PASSWORD
       }).call(this);
     },
-    "works just fine": function(r, err) {
+    "works just fine": function(err, r) {
       assert.equal(r.code, 200);
     }
   }
@@ -113,7 +83,7 @@ suite.addBatch({
     topic: function() {
       return jwk.KeyPair.generate("DS", 256)
     },
-    "succeeds": function(r, err) {
+    "succeeds": function(r) {
       assert.isObject(r);
       assert.isObject(r.publicKey);
       assert.isObject(r.secretKey);
@@ -130,7 +100,7 @@ suite.addBatch({
         pubkey: g_keypair.publicKey.serialize()
       }).call(this);
     },
-    "works swimmingly": function(r, err) {
+    "works swimmingly": function(err, r) {
       assert.isString(r.body);
       g_cert = r.body;
       assert.lengthOf(g_cert.split('.'), 3);
@@ -150,7 +120,7 @@ function make_basic_tests(new_style) {
                                          tok.sign(g_keypair.secretKey),
                                          new_style);
     },
-    "succeeds": function(r, err) {
+    "succeeds": function(r) {
       assert.isString(r);
     },
     "and verifying that assertion by specifying domain as audience": {
@@ -160,7 +130,7 @@ function make_basic_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "works": function(r, err) {
+      "works": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.isObject(resp);
         assert.strictEqual(resp.status, 'okay');
@@ -179,7 +149,7 @@ function make_basic_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "works": function(r, err) {
+      "works": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.isObject(resp);
         assert.strictEqual(resp.status, 'okay');
@@ -198,7 +168,7 @@ function make_basic_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "fails with a nice error": function(r, err) {
+      "fails with a nice error": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         assert.strictEqual(resp.reason, 'audience mismatch: domain mismatch');
@@ -211,7 +181,7 @@ function make_basic_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "fails with a nice error": function(r, err) {
+      "fails with a nice error": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         assert.strictEqual(resp.reason, 'audience mismatch: port mismatch');
@@ -224,7 +194,7 @@ function make_basic_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "fails with a nice error": function(r, err) {
+      "fails with a nice error": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         assert.strictEqual(resp.reason, 'audience mismatch: scheme mismatch');
@@ -237,7 +207,7 @@ function make_basic_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "is cool": function(r, err) {
+      "is cool": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.isObject(resp);
         assert.strictEqual(resp.status, 'okay');
@@ -256,7 +226,7 @@ function make_basic_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "fails as you would expect": function(r, err) {
+      "fails as you would expect": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         assert.strictEqual(resp.reason, 'audience mismatch: port mismatch');
@@ -268,7 +238,7 @@ function make_basic_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "fails as you would expect": function(r, err) {
+      "fails as you would expect": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         assert.strictEqual(resp.reason, 'need assertion and audience');
@@ -280,7 +250,7 @@ function make_basic_tests(new_style) {
           audience: TEST_ORIGIN
         }).call(this);
       },
-      "fails as you would expect": function(r, err) {
+      "fails as you would expect": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         assert.strictEqual(resp.reason, 'need assertion and audience');
@@ -309,7 +279,7 @@ function make_post_format_tests(new_style) {
                                          tok.sign(g_keypair.secretKey),
                                          new_style);
     },
-    "succeeds": function(r, err) {
+    "succeeds": function(r) {
       assert.isString(r);
     },
     "posting assertion and audience as get parameters in a post request": {
@@ -334,7 +304,7 @@ function make_post_format_tests(new_style) {
           cb("error: ", e);
         }).end();
       },
-      "works, oddly enough": function (r, err) {
+      "works, oddly enough": function (r) {
         var resp = JSON.parse(r);
         assert.isObject(resp);
         assert.strictEqual(resp.status, 'okay');
@@ -371,7 +341,7 @@ function make_post_format_tests(new_style) {
         req.write(postArgs);
         req.end();
       },
-      "works, oddly enough": function (r, err) {
+      "works, oddly enough": function (r) {
         var resp = JSON.parse(r);
         assert.isObject(resp);
         assert.strictEqual(resp.status, 'okay');
@@ -408,7 +378,7 @@ function make_post_format_tests(new_style) {
         req.write(postArgs);
         req.end();
       },
-      "works, oddly enough": function (r, err) {
+      "works, oddly enough": function (r) {
         var resp = JSON.parse(r);
         assert.isObject(resp);
         assert.strictEqual(resp.status, 'okay');
@@ -545,7 +515,7 @@ function make_incorrect_assertion_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "to return a clear error message": function (r, err) {
+      "to return a clear error message": function (err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         // XXX: the verifier response should simply be "invalid signature"
@@ -571,7 +541,7 @@ suite.addBatch({
         assertion: "test@example.com"
       }).call(this);
     },
-    "fails with a nice error": function(r, err) {
+    "fails with a nice error": function(err, r) {
       var resp = JSON.parse(r.body);
       assert.strictEqual(resp.status, 'failure');
       assert.strictEqual(resp.reason, 'malformed assertion');
@@ -584,7 +554,7 @@ suite.addBatch({
          assertion: 777
       }).call(this);
     },
-    "fails with a nice error": function(r, err) {
+    "fails with a nice error": function(err, r) {
       var resp = JSON.parse(r.body);
       assert.strictEqual(resp.status, 'failure');
       assert.strictEqual(resp.reason, 'malformed assertion');
@@ -603,15 +573,18 @@ function make_crazy_assertion_tests(new_style) {
         tok.sign(g_keypair.secretKey),
         new_style);
     },
-    "and removing the last char from it": {
+    "and removing the last two chars from it": {
       topic: function(assertion) {
-        assertion = assertion.substr(0, assertion.length - 1);
+        // we used to chop off one char, but because of
+        // robustness in base64-decoding, that still worked 25%
+        // of the time. No need to build this knowledge in here.
+        assertion = assertion.substr(0, assertion.length - 2);
         wsapi.post('/verify', {
           audience: TEST_ORIGIN,
           assertion: assertion
         }).call(this);
       },
-      "fails with a nice error": function(r, err) {
+      "fails with a nice error": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         // with new assertion format, the error is different
@@ -630,7 +603,7 @@ function make_crazy_assertion_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "fails with a nice error": function(r, err) {
+      "fails with a nice error": function(err, r) {
         // XXX this test is failing because there's an exception thrown
         // that's revealing too much info about the malformed assertion
         var resp = JSON.parse(r.body);
@@ -650,7 +623,7 @@ function make_crazy_assertion_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "fails with a nice error": function(r, err) {
+      "fails with a nice error": function(err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         if (new_style) {
@@ -687,7 +660,7 @@ suite.addBatch({
         assertion: assertion
       }).call(this);
     },
-    "fails with a nice error": function(r, err) {
+    "fails with a nice error": function(err, r) {
       var resp = JSON.parse(r.body);
       assert.strictEqual(resp.status, 'failure');
       // XXX: the verifier should return a clearer error message
@@ -707,7 +680,7 @@ suite.addBatch({
         assertion: assertion
       }).call(this);
     },
-    "fails with a nice error": function(r, err) {
+    "fails with a nice error": function(err, r) {
       var resp = JSON.parse(r.body);
       assert.strictEqual(resp.status, 'failure');
       // XXX: this error should be clearer
@@ -730,7 +703,7 @@ suite.addBatch({
         assertion: assertion
       }).call(this);
     },
-    "fails with a nice error": function(r, err) {
+    "fails with a nice error": function(err, r) {
       var resp = JSON.parse(r.body);
       assert.strictEqual(resp.status, 'failure');
       // XXX: this error should be clearer
@@ -739,8 +712,8 @@ suite.addBatch({
   }
 });
 
-// now verify that no-one other than browserid is allowed to issue assertions
-// (until primary support is implemented)
+// now verify that assertions from a primary who does not have browserid support
+// will fail to verify 
 function make_other_issuer_tests(new_style) {
   var title = "generating an assertion from a cert signed by some other domain with " + (new_style ? "new style" : "old style");
   var tests = {
@@ -748,7 +721,7 @@ function make_other_issuer_tests(new_style) {
       var fakeDomainKeypair = jwk.KeyPair.generate("RS", 64);
       var newClientKeypair = jwk.KeyPair.generate("DS", 256);
       expiration = new Date(new Date().getTime() + (1000 * 60 * 60 * 6));
-      var cert = new jwcert.JWCert("otherdomain.tld", expiration, new Date(), newClientKeypair.publicKey,
+      var cert = new jwcert.JWCert("lloyd.io", expiration, new Date(), newClientKeypair.publicKey,
                                    {email: TEST_EMAIL}).sign(fakeDomainKeypair.secretKey);
 
       var expirationDate = new Date(new Date().getTime() + (2 * 60 * 1000));
@@ -757,7 +730,7 @@ function make_other_issuer_tests(new_style) {
                                          tok.sign(newClientKeypair.secretKey),
                                          new_style);
     },
-    "yields a good looking assertion": function (r, err) {
+    "yields a good looking assertion": function (r) {
       assert.isString(r);
       assert.equal(r.length > 0, true);
     },
@@ -768,10 +741,10 @@ function make_other_issuer_tests(new_style) {
           assertion: assertion
         }).call(this);
       },
-      "to return a clear error message": function (r, err) {
+      "to return a clear error message": function (err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
-        assert.strictEqual(resp.reason, "this verifier doesn't respect certs issued from domains other than: 127.0.0.1");
+        assert.strictEqual(resp.reason, "can't get public key for lloyd.io");
       }
     }
   };
@@ -779,10 +752,88 @@ function make_other_issuer_tests(new_style) {
   var overall_test = {};
   overall_test[title] = tests;
   return overall_test;
-}
+};
 
 suite.addBatch(make_other_issuer_tests(false));
 suite.addBatch(make_other_issuer_tests(true));
+
+// now verify that assertions from a primary who does have browserid support
+// but has no authority to speak for an email address will fail
+suite.addBatch({
+  "generating an assertion from a cert signed by a real (simulated) primary": {
+    topic: function() {
+      var secretKey = jwk.SecretKey.fromSimpleObject(
+        JSON.parse(require('fs').readFileSync(
+          path.join(__dirname, '..', 'example', 'primary', 'sample.privatekey'))));
+
+      var newClientKeypair = jwk.KeyPair.generate("DS", 256);
+      expiration = new Date(new Date().getTime() + (1000 * 60 * 60 * 6));
+      var cert = new jwcert.JWCert("example.domain", expiration, new Date(), newClientKeypair.publicKey,
+                                   {email: TEST_EMAIL}).sign(secretKey);
+
+      var expirationDate = new Date(new Date().getTime() + (2 * 60 * 1000));
+      var tok = new jwt.JWT(null, expirationDate, TEST_ORIGIN);
+      return vep.bundleCertsAndAssertion([cert], tok.sign(newClientKeypair.secretKey));
+    },
+    "yields a good looking assertion": function (r) {
+      assert.isString(r);
+      assert.equal(r.length > 0, true);
+    },
+    "will cause the verifier": {
+      topic: function(assertion) {
+        wsapi.post('/verify', {
+          audience: TEST_ORIGIN,
+          assertion: assertion
+        }).call(this);
+      },
+      "to return a clear error message": function (err, r) {
+        var resp = JSON.parse(r.body);
+        assert.strictEqual(resp.status, 'failure');
+        assert.strictEqual(resp.reason, "issuer issue 'example.domain' may not speak for emails from 'somedomain.com'");
+      }
+    }
+  }
+});
+
+// now verify that assertions from a primary who does have browserid support
+// and may speak for an email address will succeed
+suite.addBatch({
+  "generating an assertion from a cert signed by a real (simulated) primary": {
+    topic: function() {
+      var secretKey = jwk.SecretKey.fromSimpleObject(
+        JSON.parse(require('fs').readFileSync(
+          path.join(__dirname, '..', 'example', 'primary', 'sample.privatekey'))));
+
+      var newClientKeypair = jwk.KeyPair.generate("DS", 256);
+      expiration = new Date(new Date().getTime() + (1000 * 60 * 60 * 6));
+      var cert = new jwcert.JWCert("example.domain", expiration, new Date(), newClientKeypair.publicKey,
+                                   {email: "foo@example.domain"}).sign(secretKey);
+
+      var expirationDate = new Date(new Date().getTime() + (2 * 60 * 1000));
+      var tok = new jwt.JWT(null, expirationDate, TEST_ORIGIN);
+      return vep.bundleCertsAndAssertion([cert], tok.sign(newClientKeypair.secretKey));
+    },
+    "yields a good looking assertion": function (r) {
+      assert.isString(r);
+      assert.equal(r.length > 0, true);
+    },
+    "will cause the verifier": {
+      topic: function(assertion) {
+        wsapi.post('/verify', {
+          audience: TEST_ORIGIN,
+          assertion: assertion
+        }).call(this);
+      },
+      "to return a clear error message": function (err, r) {
+        var resp = JSON.parse(r.body);
+        assert.strictEqual(resp.status, 'okay');
+        assert.strictEqual(resp.issuer, "example.domain");
+        assert.strictEqual(resp.audience, TEST_ORIGIN);
+        assert.strictEqual(resp.email, "foo@example.domain");
+      }
+    }
+  }
+});
 
 start_stop.addShutdownBatches(suite);
 

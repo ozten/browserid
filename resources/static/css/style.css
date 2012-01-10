@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 noscript {
   position: fixed;
@@ -20,6 +24,9 @@ noscript {
   display: none;
   z-index: 1000;
   background-color: rgba(0,0,0,.6);
+  -ms-filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000,endColorstr=#99000000);
+  filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=#99000000,endColorstr=#99000000);
+  zoom: 1;
 }
 
 #error {
@@ -416,6 +423,11 @@ button.delete:active {
 
 #edit_password {
   margin-bottom: 10px;
+  display: none;
+}
+
+.canSetPassword #edit_password {
+  display: block;
 }
 
 #edit_password label {
@@ -645,6 +657,9 @@ h1 {
   margin-top: 20px;
   color: red;
   background-color: rgba(255,0,0,0.25);
+  -ms-filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=#3fff0000,endColorstr=#3fff0000);
+  filter:progid:DXImageTransform.Microsoft.gradient(startColorstr=#3fff0000,endColorstr=#3fff0000);
+  zoom: 1;
   padding: 5px;
   line-height: 16px;
 
@@ -654,9 +669,17 @@ h1 {
           border-radius: 3px;
 }
 
+#signUpForm > .siteinfo {
+  margin-bottom: 10px;
+}
 
-.siteinfo, #congrats {
+.siteinfo, #congrats, #signUpForm > .password_entry, .enter_password .hint, #unknown_secondary, #primary_verify, .verify_primary .submit {
   display: none;
+}
+
+.enter_password #signUpForm > .password_entry, .known_secondary #signUpForm > .password_entry,
+.unknown_secondary #unknown_secondary, .verify_primary #verify_primary {
+  display: block;
 }
 
 #congrats p {

@@ -1,39 +1,8 @@
 /*jshint browsers:true, forin: true, laxbreak: true */
-/*global wrappedAsyncTest: true, start: true, stop: true, module: true, ok: true, equal: true, BrowserID: true */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla BrowserID.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2011
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/*global start: true, stop: true, module: true, ok: true, equal: true, BrowserID: true */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 BrowserID.Mocks.xhr = (function() {
   var  contextInfo = {
@@ -41,6 +10,7 @@ BrowserID.Mocks.xhr = (function() {
       domain_key_creation_time: (new Date().getTime() - (30 * 24 * 60 * 60 * 1000)),
       csrf_token: "csrf",
       authenticated: false,
+      auth_level: undefined,
       code_version: "ABC123",
       random_seed: "H+ZgKuhjVckv/H4i0Qvj/JGJEGDVOXSIS5RCOjY9/Bo="
     };
@@ -61,16 +31,22 @@ BrowserID.Mocks.xhr = (function() {
       // the flag contextAjaxError.
       "get /wsapi/session_context contextAjaxError": undefined,
       "get /wsapi/email_for_token?token=token valid": { email: "testuser@testuser.com" },
+      "get /wsapi/email_for_token?token=token needsPassword": { email: "testuser@testuser.com", needs_password: true },
       "get /wsapi/email_for_token?token=token invalid": { success: false },
       "post /wsapi/authenticate_user valid": { success: true },
       "post /wsapi/authenticate_user invalid": { success: false },
       "post /wsapi/authenticate_user ajaxError": undefined,
+      "post /wsapi/auth_with_assertion primary": { success: true },
+      "post /wsapi/auth_with_assertion valid": { success: true },
+      "post /wsapi/auth_with_assertion invalid": { success: false },
+      "post /wsapi/auth_with_assertion ajaxError": undefined,
       "post /wsapi/cert_key valid": random_cert,
       "post /wsapi/cert_key invalid": undefined,
       "post /wsapi/cert_key ajaxError": undefined,
       "post /wsapi/complete_email_addition valid": { success: true },
       "post /wsapi/complete_email_addition invalid": { success: false },
       "post /wsapi/complete_email_addition ajaxError": undefined,
+      "post /wsapi/stage_user unknown_secondary": { success: true },
       "post /wsapi/stage_user valid": { success: true },
       "post /wsapi/stage_user invalid": { success: false },
       "post /wsapi/stage_user throttle": 403,
@@ -96,6 +72,8 @@ BrowserID.Mocks.xhr = (function() {
       "post /wsapi/account_cancel invalid": { success: false },
       "post /wsapi/account_cancel ajaxError": undefined,
       "post /wsapi/stage_email valid": { success: true },
+      "post /wsapi/stage_email unknown_secondary": { success: true },
+      "post /wsapi/stage_email known_secondary": { success: true },
       "post /wsapi/stage_email invalid": { success: false },
       "post /wsapi/stage_email throttle": 403,
       "post /wsapi/stage_email ajaxError": undefined,
@@ -105,15 +83,32 @@ BrowserID.Mocks.xhr = (function() {
       "get /wsapi/email_addition_status?email=registered%40testuser.com mustAuth": { status: "mustAuth" },
       "get /wsapi/email_addition_status?email=registered%40testuser.com noRegistration": { status: "noRegistration" },
       "get /wsapi/email_addition_status?email=registered%40testuser.com ajaxError": undefined,
-      "get /wsapi/list_emails valid": {"testuser@testuser.com":{}},
+      "get /wsapi/list_emails valid": {"testuser@testuser.com":{ type: "secondary" }},
+      //"get /wsapi/list_emails known_secondary": {"registered@testuser.com":{ type: "secondary" }},
+      "get /wsapi/list_emails primary": {"testuser@testuser.com": { type: "primary" }},
       "get /wsapi/list_emails multiple": {"testuser@testuser.com":{}, "testuser2@testuser.com":{}},
-      "get /wsapi/list_emails no_identities": [],
+      "get /wsapi/list_emails no_identities": {},
       "get /wsapi/list_emails ajaxError": undefined,
       // Used in conjunction with registration to do a complete userflow
       "get /wsapi/list_emails complete": {"registered@testuser.com":{}},
+      "post /wsapi/set_password valid": { success: true },
+      "post /wsapi/set_password invalid": { success: false },
+      "post /wsapi/set_password ajaxError": undefined,
       "post /wsapi/update_password valid": { success: true },
       "post /wsapi/update_password incorrectPassword": { success: false },
-      "post /wsapi/update_password invalid": undefined
+      "post /wsapi/update_password invalid": undefined,
+      "get /wsapi/address_info?email=unregistered%40testuser.com invalid": undefined,
+      "get /wsapi/address_info?email=unregistered%40testuser.com throttle": { type: "secondary", known: false },
+      "get /wsapi/address_info?email=unregistered%40testuser.com unknown_secondary": { type: "secondary", known: false },
+      "get /wsapi/address_info?email=registered%40testuser.com known_secondary": { type: "secondary", known: true },
+      "get /wsapi/address_info?email=registered%40testuser.com primary": { type: "primary", auth: "https://auth_url", prov: "https://prov_url" },
+      "get /wsapi/address_info?email=unregistered%40testuser.com primary": { type: "primary", auth: "https://auth_url", prov: "https://prov_url" },
+      "get /wsapi/address_info?email=testuser%40testuser.com unknown_secondary": { type: "secondary", known: false },
+      "get /wsapi/address_info?email=testuser%40testuser.com known_secondary": { type: "secondary", known: true },
+      "get /wsapi/address_info?email=testuser%40testuser.com primary": { type: "primary", auth: "https://auth_url", prov: "https://prov_url" },
+      "get /wsapi/address_info?email=testuser%40testuser.com ajaxError": undefined,
+      "post /wsapi/add_email_with_assertion invalid": { success: false },
+      "post /wsapi/add_email_with_assertion valid": { success: true }
     },
 
     setContextInfo: function(field, value) {

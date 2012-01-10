@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 const
 spawn = require('child_process').spawn,
@@ -29,11 +33,21 @@ var daemonsToRun = {
     PORT: 10001,
     HOST: HOST
   },
+  example_primary: {
+    SHIMMED_DOMAIN: "example.domain",
+    path: path.join(__dirname, "..", "scripts", "serve_example_primary.js"),
+    PORT: 10005,
+    HOST: HOST
+  },
   browserid: {
     PORT: 10002,
     HOST: HOST
   }
 };
+
+// all spawned process that use handle primaries should know about "shimmed"
+// primaries
+process.env['SHIMMED_PRIMARIES'] = "example.domain|http://" + HOST + ":10005|" + path.join(__dirname, "..", "example", "primary", ".well-known", "vep");
 
 // all spawned processes should log to console
 process.env['LOG_TO_CONSOLE'] = 1;

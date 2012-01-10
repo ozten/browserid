@@ -1,38 +1,7 @@
 /*global BrowserID: true*/
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla BrowserID.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2011
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 BrowserID.Errors = (function(){
   "use strict";
 
@@ -43,6 +12,18 @@ BrowserID.Errors = (function(){
 
     addEmail: {
       title: "Adding Address"
+    },
+
+    addEmailWithAssertion: {
+      title: "Adding Primary Email Address to User"
+    },
+
+    addressInfo: {
+      title: "Checking Address Info"
+    },
+
+    authenticateWithAssertion: {
+      title: "Authenticating with Assertion"
     },
 
     cancelUser: {
@@ -69,8 +50,16 @@ BrowserID.Errors = (function(){
       title: "Getting Assertion"
     },
 
+    getTokenInfo: {
+      title: "Checking Registration Token"
+    },
+
     isEmailRegistered: {
       title: "Checking Email Address"
+    },
+
+    isUserAuthenticatedToPrimary: {
+      title: "Checking Whether User is Authenticated with IdP"
     },
 
     logoutUser: {
@@ -80,6 +69,21 @@ BrowserID.Errors = (function(){
     offline: {
       title: "You are offline!",
       message: "Unfortunately, BrowserID cannot communicate while offline!"
+    },
+
+    primaryAuthentication: {
+      title: "Authenticating with Identity Provider",
+      message: "We had trouble communicating with your email provider, please try again!"
+    },
+
+    provisioningPrimary: {
+      title: "Provisioning with Identity Provider",
+      message: "We had trouble communicating with your email provider, please try again!"
+    },
+
+    provisioningBadPrimary: {
+      title: "Provisioning Unsupported Identity Provider",
+      message: "Unfortunately, the email address provided cannot act as a Primary Identity Provider"
     },
 
     registration: {
@@ -97,6 +101,10 @@ BrowserID.Errors = (function(){
 
     removeEmail: {
       title: "Remove Email Address from Account"
+    },
+
+    setPassword: {
+      title: "Setting Password"
     },
 
     signIn: {
@@ -119,8 +127,16 @@ BrowserID.Errors = (function(){
       title: "Sync Keys for Address"
     },
 
+    tokenInfo: {
+      title: "Getting Token Info"
+    },
+
     updatePassword: {
       title: "Updating password"
+    },
+
+    verifyEmail: {
+      title: "Verifying email address"
     },
 
     xhrError: {

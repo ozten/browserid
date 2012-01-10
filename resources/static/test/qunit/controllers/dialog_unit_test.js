@@ -1,45 +1,16 @@
 /*jshint browsers:true, forin: true, laxbreak: true */
 /*global test: true, start: true, stop: true, module: true, ok: true, equal: true, BrowserID:true */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla BrowserID.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2011
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 (function() {
   "use strict";
 
   var bid = BrowserID,
       channel = bid.Channel,
       network = bid.Network,
+      mediator = bid.Mediator,
+      testHelpers = bid.TestHelpers,
       xhr = bid.Mocks.xhr,
       controller,
       el,
@@ -82,20 +53,21 @@
       window: winMock
     }, config);
 
-    controller = BrowserID.Modules.Dialog.create(config);
+    controller = BrowserID.Modules.Dialog.create();
+    controller.start(config);
   }
 
   module("controllers/dialog", {
     setup: function() {
       winMock = new WinMock();
       reset();
-      bid.TestHelpers.setup();
+      testHelpers.setup();
     },
 
     teardown: function() {
       controller.destroy();
       reset();
-      bid.TestHelpers.teardown();
+      testHelpers.teardown();
     }
   });
 
@@ -138,7 +110,7 @@
 
   asyncTest("initialization with #NATIVE", function() {
     winMock.location.hash = "#NATIVE";
-    
+
     createController({
       ready: function() {
         ok($("#error .contents").text().length == 0, "no error should be reported");
@@ -150,7 +122,7 @@
 
   asyncTest("initialization with #INTERNAL", function() {
     winMock.location.hash = "#INTERNAL";
-    
+
     createController({
       ready: function() {
         ok($("#error .contents").text().length == 0, "no error should be reported");
@@ -158,70 +130,50 @@
       }
     });
   });
-  
-  /*
-  test("doXHRError while online, no network info given", function() {
-    createController();
-    controller.doXHRError();
-    ok($("#error .contents").text().length, "contents have been written");
-    ok($("#error #action").text().length, "action contents have been written");
-    equal($("#error #network").text().length, 0, "no network contents to be written");
-  });
 
-  test("doXHRError while online, network info given", function() {
-    createController();
-    controller.doXHRError({
-      network: {
-        type: "POST",
-        url: "browserid.org/verify"
+  asyncTest("initialization with #CREATE_EMAIL=testuser@testuser.com", function() {
+    winMock.location.hash = "#CREATE_EMAIL=testuser@testuser.com";
+
+    createController({
+      ready: function() {
+        mediator.subscribe("primary_user", function(msg, info) {
+          equal(info.email, "testuser@testuser.com", "email_chosen with correct email");
+          equal(info.add, false, "add is not specified with CREATE_EMAIL option");
+          start();
+        });
+
+        try {
+          controller.get(testHelpers.testOrigin, {}, function() {}, function() {});
+        }
+        catch(e) {
+          // do nothing, an exception will be thrown because no modules are
+          // registered for the any services.
+        }
       }
     });
-    checkNetworkError();
   });
 
-  test("doXHRError while offline does not update contents", function() {
-    createController();
-    controller.doOffline();
-    $("#error #action").remove();
+  asyncTest("initialization with #ADD_EMAIL=testuser@testuser.com", function() {
+    winMock.location.hash = "#ADD_EMAIL=testuser@testuser.com";
 
-    controller.doXHRError();
-    ok(!$("#error #action").text().length, "XHR error is not reported if the user is offline.");
-  });
-*/
-
-  /*
-  test("doCheckAuth with registered requiredEmail, authenticated", function() {
     createController({
-      requiredEmail: "registered@testuser.com"
+      ready: function() {
+        mediator.subscribe("primary_user", function(msg, info) {
+          equal(info.email, "testuser@testuser.com", "email_chosen with correct email");
+          equal(info.add, true, "add is specified with ADD_EMAIL option");
+          start();
+        });
+
+        try {
+          controller.get(testHelpers.testOrigin, {}, function() {}, function() {});
+        }
+        catch(e) {
+          // do nothing, an exception will be thrown because no modules are
+          // registered for the any services.
+        }
+      }
     });
-
-    controller.doCheckAuth();
   });
-
-  test("doCheckAuth with registered requiredEmail, not authenticated", function() {
-    createController({
-      requiredEmail: "registered@testuser.com"
-    });
-
-    controller.doCheckAuth();
-  });
-
-  test("doCheckAuth with unregistered requiredEmail, not authenticated", function() {
-    createController({
-      requiredEmail: "unregistered@testuser.com"
-    });
-
-    controller.doCheckAuth();
-  });
-
-  test("doCheckAuth with unregistered requiredEmail, authenticated as other user", function() {
-    createController({
-      requiredEmail: "unregistered@testuser.com"
-    });
-
-    controller.doCheckAuth();
-  });
-*/
 
   asyncTest("onWindowUnload", function() {
     createController({
@@ -241,6 +193,7 @@
       }
     });
   });
+
 
 }());
 

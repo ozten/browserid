@@ -1,39 +1,8 @@
 /*jshint browser:true, jQuery: true, forin: true, laxbreak:true */
 /*global BrowserID: true */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla BrowserID.
- *
- * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2011
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
 BrowserID.Modules.Dialog = (function() {
@@ -43,7 +12,9 @@ BrowserID.Modules.Dialog = (function() {
       user = bid.User,
       errors = bid.Errors,
       dom = bid.DOM,
-      win = window;
+      win = window,
+      channel,
+      sc;
 
   function checkOnline() {
     if (false && 'onLine' in navigator && !navigator.onLine) {
@@ -72,7 +43,8 @@ BrowserID.Modules.Dialog = (function() {
   }
 
   function startChannel() {
-    var self = this;
+    var self = this,
+        hash = win.location.hash;
 
     // first, we see if there is a local channel
     if (win.navigator.id && win.navigator.id.channel) {
@@ -81,24 +53,32 @@ BrowserID.Modules.Dialog = (function() {
     }
 
     // next, we see if the caller intends to call native APIs
-    if (win.location.hash == "#NATIVE" || win.location.hash == "#INTERNAL") {
+    if (hash == "#NATIVE" || hash == "#INTERNAL") {
       // don't do winchan, let it be.
       return;
-    }      
+    }
 
     try {
-      WinChan.onOpen(function(origin, args, cb) {
-        self.get(origin, args.params, function(r) {
-          cb(r);
-        }, function (e) {
-          cb(null);
-        });
+      channel = WinChan.onOpen(function(origin, args, cb) {
+        // XXX this is called whenever the primary provisioning iframe gets
+        // added.  If there are no args, then do not do self.get.
+        if(args) {
+          self.get(origin, args.params, function(r) {
+            cb(r);
+          }, function (e) {
+            cb(null);
+          });
+        }
       });
     } catch (e) {
       self.renderError("error", {
         action: errors.relaySetup
       });
     }
+  }
+
+  function stopChannel() {
+    channel && channel.detach();
   }
 
   function setOrigin(origin) {
@@ -111,18 +91,21 @@ BrowserID.Modules.Dialog = (function() {
   }
 
   var Dialog = bid.Modules.PageModule.extend({
-    init: function(options) {
+    start: function(options) {
       var self=this;
 
       options = options || {};
 
       win = options.window || window;
 
-      Dialog.sc.init.call(self, options);
-
+      sc.start.call(self, options);
       startChannel.call(self);
-
       options.ready && _.defer(options.ready);
+    },
+
+    stop: function() {
+      stopChannel();
+      sc.stop.call(this);
     },
 
     getVerifiedEmail: function(origin_url, success, error) {
@@ -130,7 +113,8 @@ BrowserID.Modules.Dialog = (function() {
     },
 
     get: function(origin_url, params, success, error) {
-      var self=this;
+      var self=this,
+          hash = win.location.hash;
 
       setOrigin(origin_url);
 
@@ -142,9 +126,21 @@ BrowserID.Modules.Dialog = (function() {
 
         params.hostname = user.getHostname();
 
+        // XXX Perhaps put this into the state machine.
         self.bind(win, "unload", onWindowUnload);
-
-        self.publish("start", params);
+        if(hash.indexOf("#CREATE_EMAIL=") === 0) {
+          var email = hash.replace(/#CREATE_EMAIL=/, "");
+          self.renderDialog("primary_user_verified", { email: email });
+          self.close("primary_user", { email: email, add: false });
+        }
+        else if(hash.indexOf("#ADD_EMAIL=") === 0) {
+          var email = hash.replace(/#ADD_EMAIL=/, "");
+          self.renderDialog("primary_user_verified", { email: email });
+          self.close("primary_user", { email: email, add: true });
+        }
+        else {
+          self.publish("start", params);
+        }
       }
     }
 
@@ -154,6 +150,8 @@ BrowserID.Modules.Dialog = (function() {
     // END TESTING API
 
   });
+
+  sc = Dialog.sc;
 
   return Dialog;
 

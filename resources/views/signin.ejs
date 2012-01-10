@@ -1,3 +1,7 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
 <div id="vAlign" class="disply_always">
     <div id="signUpFormWrap">
         <!-- XXX this form submits to nowhere -->
@@ -6,6 +10,12 @@
 
             <ul class="notifications">
                 <li class="notification error badlogin">Bad Login. Check your email and password.</li>
+
+                <li class="notification" id="unknown_secondary">
+                  <strong id="unknown_email">Email</strong> is not registered.
+                  Would you like to <a class="signUpIn" href="/signup">sign up</a> instead?
+                </li>
+
             </ul>
 
             <ul class="inputs">
@@ -21,7 +31,10 @@
                       The email field is required.
                     </div>
                 </li>
-                <li>
+              </ul>
+
+              <ul class="inputs password_entry">
+                <li class="password_section">
                     <label class="serif half" for="password">Password</label>
                     <div class="half right">
                         <!-- XXX: this needs to be fixed -->
@@ -44,6 +57,19 @@
                 </div-->
                 <button tabindex="5">Sign In</button>
             </div>
+
+            <ul class="notifications">
+                <li class="notification" id="verify_primary">
+                  <p>
+                    To verify that you own <strong id="primary_email">address</strong>, you must
+                    sign in with your provider.  A new window will be opened.
+                  </p>
+
+                  <p>
+                    <button id="authWithPrimary">Verify</button>
+                  </p>
+                </li>
+            </ul>
         </form>
         <a class="signUpIn space" href="/signup">New to BrowserID? Sign up today.</a>
     </div>
