@@ -26,8 +26,7 @@ BrowserID.Renderer = (function() {
     }
     if (vars) {
       var params = {
-            // TODO client.po and messages.po?
-            "domain" : "messages",
+            "domain" : "client",
             "locale_data" : json_locale_data
       };      
       var gt = new Gettext(params);
