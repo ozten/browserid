@@ -33,13 +33,25 @@ Persona is composed of a few different distinct processes:
 
 * *verifier* - handles verification of assertions.
 
-* *proxy* - handles requests to third-party domains to check their BrowserID support.
 
 This process separation lets us scale optimally, by giving each function the ability to scale independently of the others. More importantly, it lets us do privilege separation:
 
 * only <tt>writer</tt> has DB-write access.
 * only <tt>certifier</tt> has access to the private key.
 * <tt>writer</tt> and <tt>certifier</tt> are not directly reachable from the public web, requests must be proxied via <tt>router</tt> and <tt>reader</tt>, serially.
+
+## Development only processes
+
+Note that the following processes are only used during development:
+
+* proxy - Simulate our HTTP Proxy
+* example - An Example RP
+* example_primary - An Example IdP
+
+## HTTP Proxy
+
+A [Squid proxy](http://www.squid-cache.org/) handles requests to third-party domains to check their BrowserID support.
+
 
 ## Database
 
@@ -59,6 +71,9 @@ We could host each process on a separate host, but we don't need to do that yet.
 * *certifier* - runs the <tt>certifier</tt> process.
 
 * *db* - runs the MySQL Database, master or slave.
+
+Today, Ops calls dbwriter by the name secure webhead, swebhead, or sweb.
+The certifier is also a "secure webhead", but it's usually called certifier or keysigner.
 
 Each class of hosts has at least 3 instances so that maintenance can
 proceed with remaining fault tolerance.
