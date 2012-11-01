@@ -29,7 +29,11 @@ if (!URLS[env]) {
   URLS[env] = {
     "123done": 'http://'+env+'.123done.org',
     persona: 'https://'+env+'.personatest.org',
+<<<<<<< HEAD
     myfavoritebeer: 'http://'+env+'myfavoritebeer.org',
+=======
+    myfavoritebeer: 'http://'+env+'.myfavoritebeer.org',
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
     eyedeeme: 'https://eyedee.me'
   };
 }

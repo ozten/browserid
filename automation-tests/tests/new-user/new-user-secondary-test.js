@@ -65,9 +65,13 @@ var new_secondary_123done_two_browsers = {
     browser.chain()
       .wwin()
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         if (err) return done(err)
         assert.equal(text, theEmail)
         done()
+=======
+        done(err || assert.equal(text, theEmail));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
   "tear down both browsers": function(done) {
@@ -115,11 +119,20 @@ var new_secondary_mfb_two_browsers = {
         done()
       });
   },
+<<<<<<< HEAD
   "shut down first browser": function(done) {
     browser.quit(done);
   },
   "shut down second browser": function(done) {
     secondBrowser.quit(done);
+=======
+  "shut down browsers": function(done) {
+    browser.quit(function(err) {
+      secondBrowser.quit(function(err2) {
+        done(err || err2)
+      })
+    });
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   }
 };
 

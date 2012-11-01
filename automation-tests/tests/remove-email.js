@@ -95,8 +95,12 @@ runner.run(module, {
       .wclick(CSS['eyedee.me'].createAccountButton)
       .wwin()
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, firstPrimaryEmail);
         done();
+=======
+        done(err || assert.equal(text, firstPrimaryEmail))
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
 
@@ -115,8 +119,12 @@ runner.run(module, {
       .wclick(CSS['eyedee.me'].createAccountButton)
       .wwin()
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, secondPrimaryEmail);
         done();
+=======
+        done(err || assert.equal(text, secondPrimaryEmail))
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
 
@@ -142,8 +150,12 @@ runner.run(module, {
       .wwin()
       .get(link)
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, secondaryEmail);
         done();
+=======
+        done(err || assert.equal(text, secondaryEmail));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
 
@@ -156,8 +168,12 @@ runner.run(module, {
       .wclick(CSS['dialog'].signInButton)
       .wwin()
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, secondPrimaryEmail);
         done();
+=======
+        done(err || assert.equal(text, secondPrimaryEmail))
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
 
@@ -170,8 +186,12 @@ runner.run(module, {
       .wclick(CSS['dialog'].signInButton)
       .wwin()
       .wtext(CSS['myfavoritebeer.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, secondaryEmail);
         done();
+=======
+        done(err || assert.equal(text, secondaryEmail))
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
 
@@ -215,7 +235,11 @@ runner.run(module, {
   },
 
   "shut down remaining browsers": function(done) {
+<<<<<<< HEAD
     browser.quit();
     done();
+=======
+    browser.quit(done);
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   }
 });

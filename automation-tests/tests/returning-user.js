@@ -46,8 +46,12 @@ runner.run(module, {
       .wclick(CSS['eyedee.me'].createAccountButton)
       .wwin()
       .wtext(CSS['persona.org'].accountEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(primary.toLowerCase(), text) // note
         done()
+=======
+        done(err || assert.equal(primary.toLowerCase(), text)); // note
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       })
   },
   "go to 123done and add a secondary acct": function(done) {
@@ -70,8 +74,12 @@ runner.run(module, {
       .wwin()
       .get(link)
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, secondary);
         done()
+=======
+        done(err || assert.equal(text, secondary));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       })
   },
   "go to mfb, open dialog for first login": function(done) {
@@ -83,16 +91,24 @@ runner.run(module, {
   "check first radio is not selected":function(done, el) {
     browser.wfind(CSS['dialog'].firstEmail, function(err, el) {
       browser.getAttribute(el, 'selected', function(err, val) {
+<<<<<<< HEAD
         assert.ok(!val)
         done()
+=======
+        done(err || assert.ok(!val));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       })
     })
   },
   "check second radio is not selected": function(done) {
     browser.wfind(CSS['dialog'].secondEmail, function(err, el) {
       browser.getAttribute(el, 'selected', function(err, val) {
+<<<<<<< HEAD
         assert.ok(!val)
         done()
+=======
+        done(err || assert.ok(!val));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       })
     });
   },
@@ -110,16 +126,24 @@ runner.run(module, {
   "check first radio is selected":function(done, el) {
     browser.wfind(CSS['dialog'].firstEmail, function(err, el) {
       browser.getAttribute(el, 'selected', function(err, val) {
+<<<<<<< HEAD
         assert.ok(val)
         done()
+=======
+        done(err || assert.ok(val));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       })
     })
   },
   "check second radio is still not selected": function(done) {
     browser.wfind(CSS['dialog'].secondEmail, function(err, el) {
       browser.getAttribute(el, 'selected', function(err, val) {
+<<<<<<< HEAD
         assert.ok(!val)
         done()
+=======
+        done(err || assert.ok(!val));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       })
     });
   },

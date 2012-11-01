@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 const fs = require('fs');
+=======
+const fs = require('fs'),
+  path = require('path'),
+  existsSync = fs.existsSync || path.existsSync;
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
 
 function FileReporter(config) {
   var fileName = config.output_path;
@@ -11,7 +17,11 @@ function FileReporter(config) {
   var directoryPath = "";
   pathParts.forEach(function(directoryName) {
     directoryPath += "/" + directoryName;
+<<<<<<< HEAD
     if (fs.existsSync(directoryPath)) {
+=======
+    if (existsSync(directoryPath)) {
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       var directoryStats = fs.statSync(directoryPath);
 
       // If this path exists but is not a directory, we have a problems.

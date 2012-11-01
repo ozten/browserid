@@ -53,9 +53,17 @@ var primary_123done = {
     browser.chain()
       .wwin()
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, eyedeemail);
         done()
       });
+=======
+        done(err || assert.equal(text, eyedeemail));
+      });
+  },
+  "123done end this browser session": function(done) {
+    browser.quit(done);
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   }
 };
 
@@ -74,8 +82,12 @@ var mcss = CSS['myfavoritebeer.org'],
       browser.chain()
         .wwin()
         .wtext(CSS['myfavoritebeer.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
           assert.equal(text, eyedeemail_mfb);
           done()
+=======
+          done(err || assert.equal(text, eyedeemail_mfb));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
         });
     },
     "mfb tear down browser": function(done) {
@@ -104,8 +116,16 @@ var pcss = CSS['persona.org'],
         .wclick(CSS['eyedee.me'].createAccountButton)
         .wwin()
         .wtext(pcss.accountEmail, function(err, text) {
+<<<<<<< HEAD
           assert.equal(porg_eyedeemail.toLowerCase(), text) // note
         })
+=======
+          done(err || assert.equal(porg_eyedeemail.toLowerCase(), text)) // note
+        });
+    },
+    "log out": function(done) {
+      browser.chain()
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
         .wclick(pcss.header.signOut)
         .quit(done);
     }

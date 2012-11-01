@@ -4,6 +4,10 @@ Q = require('q'),
 restmail = require('../lib/restmail.js'),
 saucePlatforms = require('./sauce-platforms.js'),
 wd = require('wd'),
+<<<<<<< HEAD
+=======
+path = require('path'),
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
 _ = require('underscore');
 
 require('./wd-extensions.js');
@@ -29,6 +33,7 @@ testSetup.startup = function(opts) {
     sauceApiKey = opts.sauceApiKey || process.env['PERSONA_SAUCE_APIKEY'],
     browser;
 
+<<<<<<< HEAD
   if (sauceUser && sauceApiKey) {
     browser = wd.remote('ondemand.saucelabs.com', 80, sauceUser, sauceApiKey);
     browser.on('status', function(info){
@@ -36,10 +41,24 @@ testSetup.startup = function(opts) {
       // TODO do something nicer with this
       console.error('\x1b[36m%s\x1b[0m', info);
     });
+=======
+  if (sauceUser && sauceApiKey && !process.env.PERSONA_NO_SAUCE) {
+    browser = wd.remote('ondemand.saucelabs.com', 80, sauceUser, sauceApiKey);
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   } else {
     browser = wd.remote();
   }
 
+<<<<<<< HEAD
+=======
+  browser.on('status', function(info) {
+    // using console.error so we don't mix up plain text with junitxml
+    // TODO do something nicer with this
+    var format = process.env.NODE_DISABLE_COLORS ? '%s' : '\x1b[36m%s\x1b[0m';
+    console.error(format, info);
+  });
+
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   var id = testSetup.browsers.push(browser);
   return id - 1;
 }
@@ -56,7 +75,11 @@ function _setSessionOpts(opts) {
   // check for typos: throw error if requestedPlatform not found in list of supported sauce platforms
   var requestedPlatform = opts.platform || process.env['PERSONA_BROWSER'];
   if (requestedPlatform && !saucePlatforms.platforms[requestedPlatform]) {
+<<<<<<< HEAD
     throw new Error('requested platform ' + requestedPlatform + 
+=======
+    throw new Error('requested platform ' + requestedPlatform +
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
                     ' not found in list of available platforms');
   }
   // Default to chrome which does not need a version number.
@@ -83,6 +106,12 @@ function _setSessionOpts(opts) {
     sessionOpts.tags.push('persona');
   }
 
+<<<<<<< HEAD
+=======
+  // Ensure a test name for saucelabs
+  if (!sessionOpts.name) sessionOpts.name = createTestName();
+
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   testSetup.sessionOpts = sessionOpts;
 }
 
@@ -154,5 +183,18 @@ function setupBrowsers(browserCount, out) {
   return out;
 }
 
+<<<<<<< HEAD
   
+=======
+function createTestName() {
+  var testname = path.basename(process.argv[1], '.js');
+  if (testname === 'vows') {
+    var isOption = function(elt) { return elt.indexOf('-') === 0; };
+    testname = _.reject(process.argv.slice(2), isOption)[0];
+    testname = path.basename(testname, '.js');
+  }
+  return [ 'persona', testname.replace(/\s+/g, '-') ].join('.');
+}
+
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
 module.exports = testSetup;

@@ -53,8 +53,13 @@ runner.run(module, {
     browser.chain()
       .wtype(CSS['dialog'].choosePassword, NEW_PASSWORD)
       .wtype(CSS['dialog'].verifyPassword, NEW_PASSWORD)
+<<<<<<< HEAD
       .wclick(CSS['dialog'].resetPasswordButton, function() {
         done();
+=======
+      .wclick(CSS['dialog'].resetPasswordButton, function(err) {
+        done(err);
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
 
@@ -66,8 +71,12 @@ runner.run(module, {
     browser.chain()
       .wwin()
       .wtext(CSS['myfavoritebeer.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, theUser.email);
         done();
+=======
+        done(err || assert.equal(text, theUser.email));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
 
@@ -78,8 +87,13 @@ runner.run(module, {
       .wwin(CSS['dialog'].windowName)
       // the thisIsNotMe button is only displayed if the user is already
       // authenticated.
+<<<<<<< HEAD
       .wclick(CSS['dialog'].thisIsNotMe, function() {
         done();
+=======
+      .wclick(CSS['dialog'].thisIsNotMe, function(err) {
+        done(err);
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
 
@@ -92,7 +106,11 @@ runner.run(module, {
   },
 
   "shut down remaining browsers": function(done) {
+<<<<<<< HEAD
     browser.quit();
     done();
+=======
+    browser.quit(done);
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   }
 });

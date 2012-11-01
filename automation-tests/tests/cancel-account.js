@@ -28,7 +28,11 @@ function setup(done) {
     browser = info.browser;
     secondaryEmail = saveEmail(info.email);
     secondaryPassword = info.password;
+<<<<<<< HEAD
     done();
+=======
+    done(err);
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   });
 }
 
@@ -84,8 +88,12 @@ function signIn123DoneWithSecondary(browser, email, password, done) {
     .wclick(CSS['dialog'].returningUserButton)
     .wwin()
     .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
       assert.equal(text, email);
       done();
+=======
+      done(err || assert.equal(text, email));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
     });
 }
 
@@ -167,7 +175,11 @@ runner.run(module, {
   },
 
   "shut down remaining browsers": function(done) {
+<<<<<<< HEAD
     browser.quit();
     done();
+=======
+    browser.quit(done);
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   }
 }, module);

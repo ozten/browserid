@@ -36,7 +36,11 @@ var primaryTest = {
       secondBrowser = fixtures.browsers[1];
       eyedeemail = fixtures.eyedeemails[0];
       theEmail = fixtures.restmails[0];
+<<<<<<< HEAD
       done()
+=======
+      done(err)
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
     });
   },
   "start, go to personaorg, click sign in, type eyedeeme addy, click next": function(done) {
@@ -55,7 +59,11 @@ var primaryTest = {
     browser.chain()
       .wwin()
       .wtext(pcss.accountEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(eyedeemail.toLowerCase(), text) // note, had to lower case it.
+=======
+        done(err || assert.equal(eyedeemail.toLowerCase(), text)); // note, had to lower case it.
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       })
       .wclick(pcss.header.signOut, done);
   },

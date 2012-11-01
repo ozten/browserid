@@ -4,21 +4,28 @@
 var wd = require('wd/lib/webdriver.js');
 
 const utils = require('./utils.js'),
+<<<<<<< HEAD
    timeouts = require('./timeouts.js'),
    platforms = require('./sauce-platforms.js'),
    path = require('path');
+=======
+   timeouts = require('./timeouts.js');
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
 
 function setTimeouts(opts) {
   opts.poll = opts.poll || timeouts.DEFAULT_POLL_MS;
   opts.timeout = opts.timeout || timeouts.DEFAULT_TIMEOUT_MS;
 }
 
+<<<<<<< HEAD
 function createTestName(opts) {
   var testname = path.basename(path.normalize(process.argv[1])) || '';
   testname = testname.replace(/\.js$/, '');
   return [ 'persona', testname ].join('.').replace(/\s/g, '_');
 }
 
+=======
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
 // wait for a element to become part of the dom and be visible to
 // the user.  The element is identified by CSS selector.  options:
 //   which: css selector specifying which element
@@ -48,8 +55,11 @@ wd.prototype.newSession = function(opts, cb) {
     opts = {};
   }
 
+<<<<<<< HEAD
   if (!opts.name) opts.name = createTestName(opts);
 
+=======
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
   browser.init(opts, function(err) {
     if (err) return cb(err);
     // note!  the implicit wait timeout is different from other timeouts,

@@ -23,7 +23,11 @@ const path = require('path'),
       StdOutReporter = require('../lib/reporters/std_out_reporter'),
       StdErrReporter = require('../lib/reporters/std_err_reporter'),
       max_runners = parseInt(process.env['RUNNERS'] || 1, 10),
+<<<<<<< HEAD
       vows_path = "../node_modules/.bin/vows",
+=======
+      vows_path = path.join(__dirname, "../node_modules/.bin/vows"),
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       vows_args = process.env['VOWS_ARGS'] || "--xunit",
       result_extension = process.env['RESULT_EXTENSION'] || "xml",
       start_time = new Date().getTime();

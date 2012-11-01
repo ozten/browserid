@@ -10,7 +10,13 @@ exports.waitFor = function (poll, timeout, check, complete) {
   var startTime = new Date();
   function doit() {
     check(function(done) {
+<<<<<<< HEAD
       if (done || ((new Date() - startTime) > timeout)) {
+=======
+      if (!done && ((new Date() - startTime) > timeout)) {
+        complete.call(null, "timeout hit");
+      } else if (done) {
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
         complete.apply(null, Array.prototype.slice.call(arguments, 1));
       } else {
         setTimeout(doit, poll);

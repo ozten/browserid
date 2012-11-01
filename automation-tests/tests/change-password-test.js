@@ -57,8 +57,12 @@ runner.run(module, {
     browser.chain()
       .wwin()
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, testUser.email);
         done();
+=======
+        done(err || assert.equal(text, testUser.email));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
   "in the second browser, log in to persona.org": function(done) {
@@ -71,8 +75,12 @@ runner.run(module, {
       .wtype(CSS['persona.org'].signInForm.password, testUser.pass)
       .wclick(CSS['persona.org'].signInForm.finishButton)
       .wtext(CSS['persona.org'].accountManagerHeader, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, 'Account Manager');
         done();
+=======
+        done(err || assert.equal(text, 'Account Manager'));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
     },
   "click the change password button": function(done) {
@@ -109,8 +117,12 @@ runner.run(module, {
     browser.chain()
       .wwin()
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, testUser.email);
         done();
+=======
+        done(err || assert.equal(text, testUser.email));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
   "shut down": function(done) {

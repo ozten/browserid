@@ -49,8 +49,12 @@ runner.run(module, {
     browser.chain()
       .wwin()
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, testUser.email);
         done()
+=======
+        done(err || assert.equal(text, testUser.email));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
        });
   },
   "tear down browser": function(done) {
@@ -80,8 +84,12 @@ runner.run(module, {
     browser.chain()
       .wwin()
       .wtext(CSS['myfavoritebeer.org'].currentlyLoggedInEmail, function(err, text) {
+<<<<<<< HEAD
         assert.equal(text, mfbUser.email);
         done()
+=======
+        done(err || assert.equal(text, mfbUser.email));
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
       });
   },
   "mfb tear down browser": function(done) {

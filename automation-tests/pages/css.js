@@ -43,9 +43,15 @@ module.exports = {
   },
   "dialog": {
     windowName: "__persona_dialog",
+<<<<<<< HEAD
     emailInput: 'input#email',
     newEmailNextButton: 'p.submit.buttonrow button.start',
     existingPassword: 'div#signIn input#password',
+=======
+    emailInput: 'input#authentication_email',
+    newEmailNextButton: 'p.submit.buttonrow button.start',
+    existingPassword: 'div#signIn input#authentication_password',
+>>>>>>> 16b3cd1941eb92bf8a410d0a4674e403e83487d8
     forgotPassword: 'a#forgotPassword',
     choosePassword: 'div#set_password input#password',
     verifyPassword: 'input#vpassword',
