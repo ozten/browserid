@@ -100,6 +100,9 @@ BrowserID.XHR = (function() {
   }
 
   function get(options) {
+    counter++;
+    console.log($.get);
+    $.get('/WSAPI:' + options.url + '_' + counter);
     var req = _.extend(options, {
       type: "GET",
       defer_success: true
@@ -127,6 +130,9 @@ BrowserID.XHR = (function() {
   }
 
   function post(options) {
+    counter++;
+    console.log($.get);
+    $.get('/WSAPI:' + options.url + '_' + counter);
     withContext(function() {
       var data = options.data || {};
       data.csrf = data.csrf || csrf_token;

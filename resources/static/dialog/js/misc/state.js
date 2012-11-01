@@ -25,6 +25,7 @@ BrowserID.State = (function() {
     // of the current state and no new state object is stored.  When
     // a cancelState occurs, repopulate the state object with the previously
     // saved snapshot.
+    window.counter = 0;
     var me = this,
         self = {},
         momentos = [],
@@ -36,6 +37,8 @@ BrowserID.State = (function() {
             // new state.
             if (shouldSaveMomento(msg)) momentos.push(_.extend({}, self));
             redirecting = false;
+	    counter++;
+            $.get('/HANDLE-STATE:' + msg + '_' + counter);
 
             callback(msg, info || {});
           });
@@ -112,6 +115,7 @@ BrowserID.State = (function() {
       }
     }
 
+    function emailToIdPName(email) { return email.split('@')[1]; }
 
     handleState("start", function(msg, info) {
       self.hostname = info.hostname;
@@ -215,6 +219,15 @@ BrowserID.State = (function() {
 
     handleState("user_confirmed", handleEmailConfirmed);
 
+    handleState("upgraded_primary_user", function (msg, info) {
+      // TODO user.saw('upgraded_primary')
+      if (info.cert) {
+	redirectToState("email_valid_and_ready", info);
+      } else {
+	redirectToState("primary_user", info);
+      }
+    });
+
     handleState("primary_user", function(msg, info) {
       self.addPrimaryUser = !!info.add;
       var email = self.email = info.email,
@@ -268,6 +281,7 @@ BrowserID.State = (function() {
         }
       }
       else {
+        // startAction("doUpgradeToPrimaryUser", info);
         startAction("doVerifyPrimaryUser", info);
         complete(info.complete);
       }
@@ -281,6 +295,7 @@ BrowserID.State = (function() {
     });
 
     handleState("primary_user_ready", function(msg, info) {
+      // startAction("doUpgradeToPrimaryUser", info);
       redirectToState("email_chosen", info);
     });
 
@@ -308,6 +323,24 @@ BrowserID.State = (function() {
       mediator.publish("kpi_data", { email_type: idInfo.type });
 
       if (idInfo.type === "primary") {
+ 
+     //TODO: this would come from list_emails
+     info.transition_to_primary = true;
+
+     // Chose a primary email after already being authenticated
+     // Authed / primary address / transition
+     if (info.transition_to_primary && ! self.assertion) {
+       // so the issue here is we need address info so we have
+       // idpName and auth_url
+      _.extend(info, {
+        cert: idInfo.cert,
+        siteName: self.siteName,
+        idpName: emailToIdPName(self.email)
+      });
+        startAction("doUpgradeToPrimaryUser", info);
+        complete(info.complete);
+      } else
+
         if (idInfo.cert) {
           // Email is a primary and the cert is available - the user can log
           // in without authenticating with the IdP. All invalid/expired
