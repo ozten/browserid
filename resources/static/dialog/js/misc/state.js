@@ -37,7 +37,7 @@ BrowserID.State = (function() {
             // new state.
             if (shouldSaveMomento(msg)) momentos.push(_.extend({}, self));
             redirecting = false;
-	    counter++;
+            counter++;
             $.get('/HANDLE-STATE:' + msg + '_' + counter);
 
             callback(msg, info || {});
@@ -221,11 +221,13 @@ BrowserID.State = (function() {
 
     handleState("upgraded_primary_user", function (msg, info) {
       // TODO user.saw('upgraded_primary')
-      if (info.cert) {
-	redirectToState("email_valid_and_ready", info);
-      } else {
-	redirectToState("primary_user", info);
-      }
+      user.saveCompletedTransition(info.email, function () {
+        if (info.cert) {
+          redirectToState("email_valid_and_ready", info);
+        } else {
+          redirectToState("primary_user", info);
+        }
+      }, complete(info.complete));
     });
 
     handleState("primary_user", function(msg, info) {

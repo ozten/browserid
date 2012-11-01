@@ -1394,8 +1394,10 @@ BrowserID.User = (function() {
       } else {
         complete(onFailure, "user is not authenticated");
       }
+    },
+    saveCompletedTransition: function (email, onComplete, onFailure) {
+      network.completeTransition(email, onComplete, onFailure);
     }
-
   };
 
   // Set origin to default to the current domain.  Other contexts that use user.js,

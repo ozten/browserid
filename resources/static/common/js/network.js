@@ -749,6 +749,18 @@ BrowserID.Network = (function() {
           complete(onFailure, "user not authenticated");
         }
       }, onFailure);
+    },
+    completeTransition: function (email, onComplete, onFailure) {
+      Network.checkAuth(function(authenticated) {
+	if (authenticated) {
+	  post({
+	    url: "/wsapi/complete_transition",
+	    data: {email: email},
+	    success: onComplete,
+	    error: onFailure
+	  });
+	}
+      }, onFailure);
     }
   };
 
