@@ -844,9 +844,14 @@ BrowserID.User = (function() {
             var emailInfo = emails[email],
                 storedEmailInfo = storage.getEmail(email);
 
+            if (emailInfo.issuer != storedEmailInfo.issuer) {
+	      storage.invalidateEmail(email);
+	    }
+
             _.extend(storedEmailInfo, {
               type: emailInfo.type,
-              verified: emailInfo.verified
+              verified: emailInfo.verified,
+              issuer: emailInfo.issuer
             });
 
             storage.addEmail(email, storedEmailInfo);
