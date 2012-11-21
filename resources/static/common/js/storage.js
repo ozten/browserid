@@ -234,7 +234,7 @@ email the user is trying to forceIssuer on.
       if (ids[email].pub) delete ids[email].pub;
       if (ids[email].type) delete ids[email].type;
     });
-    storage['forceIssuerEmails'] = JSON.stringify(ids);
+    storage.forceIssuerEmails = JSON.stringify(ids);
   }
 
   function setReturnTo(returnToURL) {

@@ -31,8 +31,8 @@ BrowserID.State = (function() {
         redirecting = false,
         handleState = function(msg, callback) {
           me.subscribe(msg, function(msg, info) {
-	    $.get('/HANDLE:' + msg);
-	    console.log('handling ' + msg + ' with ', info);
+            $.get('/HANDLE:' + msg);
+            console.log('handling ' + msg + ' with ', info);
             // Save a snapshot of the current state off to the momentos. If
             // a state is ever cancelled, this momento will be used as the
             // new state.
@@ -165,7 +165,7 @@ BrowserID.State = (function() {
       _.extend(info, {
         siteName: self.siteName,
         siteTOSPP: self.siteTOSPP,
-	forceIssuer: self.forceIssuer
+        forceIssuer: self.forceIssuer
       });
 
       startAction("doAuthenticate", info);
@@ -228,6 +228,7 @@ BrowserID.State = (function() {
         startAction(false, "doStageResetPassword", info);
       }
       else if(self.newFxAccountEmail) {
+        console.log('AOK password_set and correct newFxAccount block hit!!!');
         startAction(false, "doStageUser", info);
         //startAction(false, "doStageFxAccountPassword", info);
       }
@@ -317,7 +318,7 @@ BrowserID.State = (function() {
       var email = info.email,
           idInfo;
       if ('default' === self.forceIssuer)
-	idInfo = storage.getEmail(email);
+        idInfo = storage.getEmail(email);
       else
         idInfo = storage.getForceIssuerEmail(email, self.forceIssuer);
       console.log('state.email_chosen idInfo=', idInfo);
@@ -329,7 +330,7 @@ BrowserID.State = (function() {
       }
 
       if (!idInfo) {
-	console.log('state.email_chosen nothing in local storage for ', self.email);
+        console.log('state.email_chosen nothing in local storage for ', self.email);
         throw new Error("invalid email");
       }
 
@@ -351,27 +352,51 @@ BrowserID.State = (function() {
           redirectToState("primary_user", info);
         }
       }
-      // Anything below this point means the address is a secondary.
-      else if (!idInfo.verified) {
-        // user selected an unverified secondary email, kick them over to the
-        // verify screen.
-        redirectToState("stage_reverify_email", info);
-      }
       else if ('default' !== self.forceIssuer && !idInfo.cert) {
 //aok
 
 // I think if we have 
 //      else if (info.known && info.state === "transition_no_password") {
 //       self.close("new_fxaccount", { email: email, fxaccount: true }, { email: email });
-	console.log('email_chosen ... AOK');
-	console.log(info);
-	console.log(idInfo);
+// Duplicates some of the logic in the authentication action module.
+        user.addressInfo(info.email, self.forceIssuer, function (serverInfo) {
+          // We'll end up in this state again, but we want to see serverInfo.state change
+          user.resetCaches();
+          console.log('state email chosen forceIssuer User.addressInfo callback serverInfo=', serverInfo);
+          if (serverInfo.known && serverInfo.state === "transition_no_password") {
+            var newAccountCreated = function (a, b, c) {
+              console.log('newAccountCreated callback a=', a, 'b=', c, 'c=', c);
+//            info.fxaccount = true;
+//              redirectToState("password_set", info);
+            };
+            var newInfo = _.extend(info, { fxaccount: true });
+//          redirectToState("new_fxaccount", newInfo);
+      self.newFxAccountEmail = info.email;
+      startAction(false, "doSetPassword", info);
+          } else {
+            //aok
+            redirectToState("email_valid_and_ready", info);
+            oncomplete();
+          }
+        }, function () {
+          // TODO
+          console.error('Unable to check with address info');
+        });
+        console.log('email_chosen ... AOK');
+        console.log(info);
+        console.log(idInfo);
 
 /*        user.checkAuthentication(function(authentication) {
-	  console.log('authentication is =', authentication);
-	  redirectToState("email_valid_and_ready", info);
-	});
+          console.log('authentication is =', authentication);
+          redirectToState("email_valid_and_ready", info);
+        });
 */
+      }
+      // Anything below this point means the address is a secondary.
+      else if (!idInfo.verified) {
+        // user selected an unverified secondary email, kick them over to the
+        // verify screen.
+        redirectToState("stage_reverify_email", info);
       }
       else {
         // Address is verified, check the authentication, if the user is not
@@ -443,7 +468,7 @@ BrowserID.State = (function() {
     handleState("generate_assertion", function(msg, info) {
       var issuer = self.forceIssuer || 'default';
       startAction("doGenerateAssertion", _.extend({ forceIssuer: issuer },
-						  info));
+                                                  info));
     });
 
     handleState("forgot_password", function(msg, info) {

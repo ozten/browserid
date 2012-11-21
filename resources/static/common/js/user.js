@@ -171,9 +171,9 @@ BrowserID.User = (function() {
         // backend incorrectly sends a mustAuth status to users who have just
         // completed verification. See issue #1682
         // https://github.com/mozilla/browserid/issues/1682
-	console.log('Attempting to authenticate');
+        console.log('Attempting to authenticate');
         User.authenticate(stagedEmail, stagedPassword, function(authenticated) {
-	  console.log('authenticated=', authenticated);
+          console.log('authenticated=', authenticated);
           completionStatus = authenticated ? "complete" : "mustAuth";
           completeVerification(completionStatus);
         }, onFailure);
@@ -244,7 +244,7 @@ BrowserID.User = (function() {
         //   'pending'  - a registration is in progress
         //   'mustAuth' - user must authenticate
         //   'noRegistration' - no registration is in progress
-	console.log('poll status=', status);
+        console.log('poll status=', status);
         if (status === "complete" || status === "mustAuth") {
           userVerified(status);
         }
@@ -345,10 +345,10 @@ BrowserID.User = (function() {
       var forceIssuer = User.forceIssuer;
       console.log('network.certKey callback... forceIssuer=', forceIssuer);
       if ('default' !== forceIssuer) {
-	console.log('persisting to force issuer storage');
+        console.log('persisting to force issuer storage');
         persistForceIssuerEmailKeypair(email, "secondary", keypair, cert, forceIssuer, onComplete, onFailure);
       } else {
-	console.log('persisting to default storage');
+        console.log('persisting to default storage');
         persistEmailKeypair(email, "secondary", keypair, cert, onComplete, onFailure);
       }
 
@@ -529,12 +529,12 @@ BrowserID.User = (function() {
     provisionPrimaryUser: function(email, info, onComplete, onFailure) {
       console.log('user.provisionPrimaryUser');
       User.primaryUserAuthenticationInfo(email, info, function(authInfo) {
-	console.log('callback authInfo=', authInfo);
+        console.log('callback authInfo=', authInfo);
         if(authInfo.authenticated) {
-	  console.log('calling persistEmailKeypair');
+          console.log('calling persistEmailKeypair');
           persistEmailKeypair(email, "primary", authInfo.keypair, authInfo.cert,
             function() {
-	  console.log('persistEmailKeypair callback success');
+          console.log('persistEmailKeypair callback success');
               // We are getting an assertion for persona.org.
               User.getAssertion(email, "https://login.persona.org", User.forceIssuer, function(assertion) {
                 if (assertion) {
@@ -875,109 +875,109 @@ BrowserID.User = (function() {
     syncEmails: function(onComplete, onFailure) {
       cleanupIdentities(function () {
         var issued_identities = User.getStoredEmailKeypairs();
-	var force_issuer_identities = storage.getForceIssuerEmails('issuer.domain');
-	console.log('force_issuer_identities=', force_issuer_identities);
+        var force_issuer_identities = storage.getForceIssuerEmails('issuer.domain');
+        console.log('force_issuer_identities=', force_issuer_identities);
 
-	console.log('user.syncEmails cleaning up global forceIssuer=', bid.User.forceIssuer);
+        console.log('user.syncEmails cleaning up global forceIssuer=', bid.User.forceIssuer);
         network.listEmails(function(emails) {
           // lists of emails
           var client_emails = _.keys(issued_identities);
-	  var force_issuer_emails = _.keys(force_issuer_identities);
+          var force_issuer_emails = _.keys(force_issuer_identities);
           var server_emails = _.keys(emails);
 
-	  console.log('client_emails=', client_emails);
-	  console.log('force_issuer_emails=', force_issuer_emails);
-	  console.log('server_emails=', server_emails);
+          console.log('client_emails=', client_emails);
+          console.log('force_issuer_emails=', force_issuer_emails);
+          console.log('server_emails=', server_emails);
 
           var emails_to_add_pair = [_.difference(server_emails, client_emails)];
           var emails_to_remove_pair = [_.difference(client_emails, server_emails)];
           var emails_to_update_pair = [_.intersection(client_emails, server_emails)];
 
-	  if (!! User.forceIssuer && 'default' !== User.forceIssuer) {
-	    emails_to_add_pair.push(_.difference(server_emails, force_issuer_emails));
-	    emails_to_remove_pair.push(_.difference(force_issuer_emails, server_emails));
-	    emails_to_update_pair.push(_.intersection(force_issuer_emails, server_emails));
-	  } else {
-	    console.log("Don't BELEIVE the HYPE");
-	  }
+          if (!! User.forceIssuer && 'default' !== User.forceIssuer) {
+            emails_to_add_pair.push(_.difference(server_emails, force_issuer_emails));
+            emails_to_remove_pair.push(_.difference(force_issuer_emails, server_emails));
+            emails_to_update_pair.push(_.intersection(force_issuer_emails, server_emails));
+          } else {
+            console.log("Don't BELEIVE the HYPE");
+          }
 
 
 
           console.log('emails to remove pair', emails_to_remove_pair);
           // remove emails
-	  _.each(emails_to_remove_pair, function (emails_to_remove, i) {
-	    console.log('Removing emails', emails_to_remove, 'i=', i);
+          _.each(emails_to_remove_pair, function (emails_to_remove, i) {
+            console.log('Removing emails', emails_to_remove, 'i=', i);
             _.each(emails_to_remove, function(email) {
               if (0 === i)
-		storage.removeEmail(email);
-   	      else
-		storage.removeForceIssuerEmail(email);
+                storage.removeEmail(email);
+              else
+                storage.removeForceIssuerEmail(email);
             });
-	  });
-	  console.log('force issuer emails after remove is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
+          });
+          console.log('force issuer emails after remove is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
 
-	  console.log('emails to add pair = ', emails_to_add_pair);
+          console.log('emails to add pair = ', emails_to_add_pair);
           // these are new emails
           _.each(emails_to_add_pair, function(emails_to_add, i) {
 
-	    console.log('looping emails_to_add=', emails_to_add, ' i=', i);
+            console.log('looping emails_to_add=', emails_to_add, ' i=', i);
 
             _.each(emails_to_add, function(email) {
               var emailInfo = emails[email];
-	      console.log('user.syncEmails (after listEmails) adding ' + email);
+              console.log('user.syncEmails (after listEmails) adding ' + email);
               if (0 === i) {
 
-		persistEmail({
-		  email: email,
-		  type: emailInfo.type || "secondary",
-		  verified: emailInfo.verified
+                persistEmail({
+                  email: email,
+                  type: emailInfo.type || "secondary",
+                  verified: emailInfo.verified
                 });
-	      } else {
-		// forceIssuer is always a secondary
-		persistForceIssuerEmail({
-		  email: email,
-		  type: "secondary",
-		  verified: emailInfo.verified
+              } else {
+                // forceIssuer is always a secondary
+                persistForceIssuerEmail({
+                  email: email,
+                  type: "secondary",
+                  verified: emailInfo.verified
                 });
-	      }
+              }
             });
-	  });
-	  console.log('force issuer emails after add is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
-	    console.log('AOK AAAA');
+          });
+          console.log('force issuer emails after add is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
+            console.log('AOK AAAA');
           // update the type and verified status of stored emails
           _.each(emails_to_update_pair, function(emails_to_update, i) {
-	    console.log('AOK BBBB');
-	    console.log('emails to update', emails_to_update, ' i=', i);
+            console.log('AOK BBBB');
+            console.log('emails to update', emails_to_update, ' i=', i);
             _.each(emails_to_update, function(email) {
-	    console.log('AOK CCC');
+            console.log('AOK CCC');
               var emailInfo = emails[email],
               storedEmailInfo;
 
-	      if (0 === i) {
-		console.log('storage.getEmail(' + email + ')');
-		storedEmailInfo = storage.getEmail(email) || {};
-		console.log(storedEmailInfo);
-		_.extend(storedEmailInfo, {
-		  type: emailInfo.type,
-		  verified: emailInfo.verified
-		});
+              if (0 === i) {
+                console.log('storage.getEmail(' + email + ')');
+                storedEmailInfo = storage.getEmail(email) || {};
+                console.log(storedEmailInfo);
+                _.extend(storedEmailInfo, {
+                  type: emailInfo.type,
+                  verified: emailInfo.verified
+                });
 
-		storage.addEmail(email, storedEmailInfo);
-	      } else {
-		storedEmailInfo = storage.getForceIssuerEmail(email, 'issuer.domain') || {};
-		console.log('storedEmailInfo=', storedEmailInfo);
-		_.extend(storedEmailInfo, {
-		  type: "secondary",
-		  verified: emailInfo.verified
-		});
+                storage.addEmail(email, storedEmailInfo);
+              } else {
+                storedEmailInfo = storage.getForceIssuerEmail(email, 'issuer.domain') || {};
+                console.log('storedEmailInfo=', storedEmailInfo);
+                _.extend(storedEmailInfo, {
+                  type: "secondary",
+                  verified: emailInfo.verified
+                });
 
-		storage.addForceIssuerEmail(email, 'issuer.domain', storedEmailInfo);
-	      }              
+                storage.addForceIssuerEmail(email, 'issuer.domain', storedEmailInfo);
+              }              
             });
-	  });
+          });
 
           //storage.updateForceIssuerStorage(User.forceIssuer);
-	  console.log('force issuer emails after update is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
+          console.log('force issuer emails after update is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
           complete(onComplete);
 
         }, onFailure);
@@ -1057,8 +1057,8 @@ BrowserID.User = (function() {
         setAuthenticationStatus(authenticated);
 
         if(authenticated) {
-	  console.log('force issuer is ', User.forceIssuer);
-	  if ('default' !== User.forceIssuer) User.forceIssuerEmail = email;
+          console.log('force issuer is ', User.forceIssuer);
+          if ('default' !== User.forceIssuer) User.forceIssuerEmail = email;
 
           User.syncEmails(function() {
             onComplete && onComplete(authenticated);
@@ -1084,7 +1084,7 @@ BrowserID.User = (function() {
         setAuthenticationStatus(authenticated);
 
         if (authenticated) {
-	  console.log('authenticateWithAssertion called, calling User.syncEmails');
+          console.log('authenticateWithAssertion called, calling User.syncEmails');
           User.syncEmails(function() {
             complete(onComplete, authenticated);
           }, onFailure);
@@ -1333,9 +1333,9 @@ BrowserID.User = (function() {
             }, 0);
           }
           else {
-	    console.log('storedID', storedID);
+            console.log('storedID', storedID);
             // TODO what will the type of forceIssuer email addresses be?
-            if (storedID.type === "primary" && 'default' === forceIsser) {
+            if (storedID.type === "primary" && 'default' === User.forceIsser) {
               // first we have to get the address info, then attempt
               // a provision, then if the user is provisioned, go and get an
               // assertion.
