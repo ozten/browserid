@@ -372,6 +372,15 @@ BrowserID.User = (function() {
     });
   }
 
+  function persistForceIssuerEmail(options) {
+    checkEmailType(options.type);
+    storage.addForceIssuerEmail(options.email, {
+      created: new Date(),
+      type: options.type,
+      verified: options.verified
+    });
+  }
+
 
   User = {
     init: function(config) {
@@ -866,47 +875,102 @@ BrowserID.User = (function() {
     syncEmails: function(onComplete, onFailure) {
       cleanupIdentities(function () {
         var issued_identities = User.getStoredEmailKeypairs();
+	var force_issuer_identities = storage.getForceIssuerEmails('issuer.domain');
+	console.log('force_issuer_identities=', force_issuer_identities);
+
 	console.log('user.syncEmails cleaning up global forceIssuer=', bid.User.forceIssuer);
         network.listEmails(function(emails) {
           // lists of emails
           var client_emails = _.keys(issued_identities);
+	  var force_issuer_emails = _.keys(force_issuer_identities);
           var server_emails = _.keys(emails);
 
-          var emails_to_add = _.difference(server_emails, client_emails);
-          var emails_to_remove = _.difference(client_emails, server_emails);
-          var emails_to_update = _.intersection(client_emails, server_emails);
+	  console.log('client_emails=', client_emails);
+	  console.log('force_issuer_emails=', force_issuer_emails);
+	  console.log('server_emails=', server_emails);
+
+          var emails_to_add_pair = [_.difference(server_emails, client_emails)];
+          var emails_to_remove_pair = [_.difference(client_emails, server_emails)];
+          var emails_to_update_pair = [_.intersection(client_emails, server_emails)];
+
+	  if (!! User.forceIssuer && 'default' !== User.forceIssuer) {
+	    emails_to_add_pair.push(_.difference(server_emails, force_issuer_emails));
+	    emails_to_remove_pair.push(_.difference(client_emails, force_issuer_emails));
+	    emails_to_update_pair.push(_.intersection(force_issuer_emails, server_emails));
+	  } else {
+	    console.log("Don't BELEIVE the HYPE");
+	  }
+
+	  console.log('emails to add pair = ', emails_to_add_pair);
 
           // remove emails
-          _.each(emails_to_remove, function(email) {
-            storage.removeEmail(email);
-          });
+	  _.each(emails_to_remove_pair, function (emails_to_remove, i) {
+	    console.log('Removing emails', emails_to_remove, 'i=', i);
+            _.each(emails_to_remove, function(email) {
+              if (0 === i)
+		storage.removeEmail(email);
+   	      else
+		storage.removeForceIssuerEmail(email);
+            });
+	  });
+	  console.log('force issuer emails after remove is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
 
           // these are new emails
-          _.each(emails_to_add, function(email) {
-            var emailInfo = emails[email];
-	    console.log('user.syncEmails (after listEmails) adding ' + email);
-            persistEmail({
-              email: email,
-              type: emailInfo.type || "secondary",
-              verified: emailInfo.verified
+          _.each(emails_to_add_pair, function(emails_to_add, i) {
+
+	    console.log('looping emails_to_add=', emails_to_add, ' i=', i);
+
+            _.each(emails_to_add, function(email) {
+              var emailInfo = emails[email];
+	      console.log('user.syncEmails (after listEmails) adding ' + email);
+              if (0 === i) {
+
+		persistEmail({
+		  email: email,
+		  type: emailInfo.type || "secondary",
+		  verified: emailInfo.verified
+                });
+	      } else {
+		persistForceIssuerEmail({
+		  email: email,
+		  type: emailInfo.type || "secondary",
+		  verified: emailInfo.verified
+                });
+	      }
             });
-          });
+	  });
+	  console.log('force issuer emails after add is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
 
           // update the type and verified status of stored emails
-          _.each(emails_to_update, function(email) {
-            var emailInfo = emails[email],
-                storedEmailInfo = storage.getEmail(email);
+          _.each(emails_to_update_pair, function(emails_to_update, i) {
+	    console.log('emails to update', emails_to_update, ' i=', i);
+            _.each(emails_to_update, function(email) {
+              var emailInfo = emails[email],
+              storedEmailInfo;
 
-            _.extend(storedEmailInfo, {
-              type: emailInfo.type,
-              verified: emailInfo.verified
+	      if (0 === i) {
+		storedEmailInfo = storage.getEmail(email);
+		_.extend(storedEmailInfo, {
+		  type: emailInfo.type,
+		  verified: emailInfo.verified
+		});
+
+		storage.addEmail(email, storedEmailInfo);
+	      } else {
+		storedEmailInfo = storage.getForceIssuerEmail(email, 'issuer.domain');
+		console.log('storedEmailInfo=', storedEmailInfo);
+		_.extend(storedEmailInfo, {
+		  type: emailInfo.type,
+		  verified: emailInfo.verified
+		});
+
+		storage.addForceIssuerEmail(email, 'issuer.domain', storedEmailInfo);
+	      }              
             });
+	  });
 
-            storage.addEmail(email, storedEmailInfo);
-          });
-
-          storage.updateForceIssuerStorage(User.forceIssuer);
-
+          //storage.updateForceIssuerStorage(User.forceIssuer);
+	  console.log('force issuer emails after update is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
           complete(onComplete);
 
         }, onFailure);
@@ -1212,7 +1276,7 @@ BrowserID.User = (function() {
      * @param {function} [onFailure] - Called on error.
      */
     getAssertion: function(email, audience, forceIssuer, onComplete, onFailure) {
-      console.log('user.getAssertion called email=', email, ' forcedIssuer=', forceIssuer);
+      console.log('user.getAssertion called email=', email, ' forceIssuer=', forceIssuer);
       // we use the current time from the browserid servers
       // to avoid issues with clock drift on user's machine.
       // (issue #329)
@@ -1264,7 +1328,7 @@ BrowserID.User = (function() {
           else {
 	    console.log('storedID', storedID);
             // TODO what will the type of forceIssuer email addresses be?
-            if (storedID.type === "primary" && 'default' === forcedIsser) {
+            if (storedID.type === "primary" && 'default' === forceIsser) {
               // first we have to get the address info, then attempt
               // a provision, then if the user is provisioned, go and get an
               // assertion.
@@ -1364,7 +1428,7 @@ BrowserID.User = (function() {
           var loggedInEmail = storage.getLoggedIn(origin);
           if (loggedInEmail !== siteSpecifiedEmail) {
             if (loggedInEmail) {
-              User.getAssertion(loggedInEmail, origin, function(assertion) {
+              User.getAssertion(loggedInEmail, origin, User.forceIssuer, function(assertion) {
                 onComplete(assertion ? loggedInEmail : null, assertion);
               }, onFailure);
             } else {

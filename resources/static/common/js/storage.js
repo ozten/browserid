@@ -60,11 +60,15 @@ localStorage is a flat key value store, so we couldn't do
 removeItem and other APIs here.
 * We can refactor all writes to emails to use a default or issuer based bucket
 
+Why keep storage.forceIssuerEmails up to date for all addresses?
+user.checkAuthenticationAndSync is called without us knowing which specific
+email the user is trying to forceIssuer on.
+
 */
 
   function clear() {
     console.log('CLEAR called nuking forceIssuerEmails');
-    console.log('storage.forceissuerEmails was ', storage.forceissuerEmails);
+    console.log('storage.forceIssuerEmails was ', storage.forceIssuerEmails);
     storage.removeItem("emails");
     storage.removeItem("forceIssuerEmails");
     storage.removeItem("siteInfo");
@@ -120,7 +124,7 @@ removeItem and other APIs here.
     console.log('emailsStorageKey(forceIssuer)=', emailsStorageKey(forceIssuer));
     console.log('storage[key]=', storage[emailsStorageKey(forceIssuer)]);
     try {
-      var emails = JSON.parse(storage[emailsStorageKey(forceIssuer)] || "{}");
+      emails = JSON.parse(storage[emailsStorageKey(forceIssuer)] || "{}");
     } catch(e) {}
     return emails || {};
   }
@@ -194,6 +198,15 @@ removeItem and other APIs here.
     }
     else {
       throw new Error("unknown email address");
+    }
+  }
+
+  function removeForceIssuerEmail(email) {
+
+    var emails = getForceIssuerEmails();
+    if(emails[email]) {
+      delete emails[email];
+      storeForceIssuerEmails(emails);
     }
   }
 
@@ -542,6 +555,7 @@ removeItem and other APIs here.
      * @method removeEmail
      */
     removeEmail: removeEmail,
+    removeForceIssuerEmail: removeForceIssuerEmail,
     /**
      * Remove the key information for an email address.
      * @throws "unknown email address" if email address is not known.
