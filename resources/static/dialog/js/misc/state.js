@@ -357,6 +357,22 @@ BrowserID.State = (function() {
         // verify screen.
         redirectToState("stage_reverify_email", info);
       }
+      else if ('default' !== self.forceIssuer && !idInfo.cert) {
+//aok
+
+// I think if we have 
+//      else if (info.known && info.state === "transition_no_password") {
+//       self.close("new_fxaccount", { email: email, fxaccount: true }, { email: email });
+	console.log('email_chosen ... AOK');
+	console.log(info);
+	console.log(idInfo);
+
+/*        user.checkAuthentication(function(authentication) {
+	  console.log('authentication is =', authentication);
+	  redirectToState("email_valid_and_ready", info);
+	});
+*/
+      }
       else {
         // Address is verified, check the authentication, if the user is not
         // authenticated to the assertion level, force them to enter their

@@ -374,7 +374,7 @@ BrowserID.User = (function() {
 
   function persistForceIssuerEmail(options) {
     checkEmailType(options.type);
-    storage.addForceIssuerEmail(options.email, {
+    storage.addForceIssuerEmail(options.email, 'issuer.domain', {
       created: new Date(),
       type: options.type,
       verified: options.verified
@@ -895,14 +895,15 @@ BrowserID.User = (function() {
 
 	  if (!! User.forceIssuer && 'default' !== User.forceIssuer) {
 	    emails_to_add_pair.push(_.difference(server_emails, force_issuer_emails));
-	    emails_to_remove_pair.push(_.difference(client_emails, force_issuer_emails));
+	    emails_to_remove_pair.push(_.difference(force_issuer_emails, server_emails));
 	    emails_to_update_pair.push(_.intersection(force_issuer_emails, server_emails));
 	  } else {
 	    console.log("Don't BELEIVE the HYPE");
 	  }
 
-	  console.log('emails to add pair = ', emails_to_add_pair);
 
+
+          console.log('emails to remove pair', emails_to_remove_pair);
           // remove emails
 	  _.each(emails_to_remove_pair, function (emails_to_remove, i) {
 	    console.log('Removing emails', emails_to_remove, 'i=', i);
@@ -915,6 +916,7 @@ BrowserID.User = (function() {
 	  });
 	  console.log('force issuer emails after remove is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
 
+	  console.log('emails to add pair = ', emails_to_add_pair);
           // these are new emails
           _.each(emails_to_add_pair, function(emails_to_add, i) {
 
@@ -931,25 +933,30 @@ BrowserID.User = (function() {
 		  verified: emailInfo.verified
                 });
 	      } else {
+		// forceIssuer is always a secondary
 		persistForceIssuerEmail({
 		  email: email,
-		  type: emailInfo.type || "secondary",
+		  type: "secondary",
 		  verified: emailInfo.verified
                 });
 	      }
             });
 	  });
 	  console.log('force issuer emails after add is ', Object.keys(storage.getForceIssuerEmails('issuer.domain')));
-
+	    console.log('AOK AAAA');
           // update the type and verified status of stored emails
           _.each(emails_to_update_pair, function(emails_to_update, i) {
+	    console.log('AOK BBBB');
 	    console.log('emails to update', emails_to_update, ' i=', i);
             _.each(emails_to_update, function(email) {
+	    console.log('AOK CCC');
               var emailInfo = emails[email],
               storedEmailInfo;
 
 	      if (0 === i) {
-		storedEmailInfo = storage.getEmail(email);
+		console.log('storage.getEmail(' + email + ')');
+		storedEmailInfo = storage.getEmail(email) || {};
+		console.log(storedEmailInfo);
 		_.extend(storedEmailInfo, {
 		  type: emailInfo.type,
 		  verified: emailInfo.verified
@@ -957,10 +964,10 @@ BrowserID.User = (function() {
 
 		storage.addEmail(email, storedEmailInfo);
 	      } else {
-		storedEmailInfo = storage.getForceIssuerEmail(email, 'issuer.domain');
+		storedEmailInfo = storage.getForceIssuerEmail(email, 'issuer.domain') || {};
 		console.log('storedEmailInfo=', storedEmailInfo);
 		_.extend(storedEmailInfo, {
-		  type: emailInfo.type,
+		  type: "secondary",
 		  verified: emailInfo.verified
 		});
 
