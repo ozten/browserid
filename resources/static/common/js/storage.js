@@ -35,12 +35,38 @@ BrowserID.Storage = (function() {
   // issues do not become a factor. See issue #2206
   setDefaultValues();
 
-  function storeEmails(emails) {
-    storage.emails = JSON.stringify(emails);
+  function emailsStorageKey(issuer, cb) {
+    if (!! issuer)
+      return 'forceIssuerEmails';
+    else
+      return 'emails';
   }
 
+  function storeEmails(emails) {
+    storage[emailsStorageKey(null)] = JSON.stringify(emails);
+  }
+
+  function storeForceIssuerEmails(emails, forceIssuer) {
+    console.log('STORING force issuer emails' + emailsStorageKey(forceIssuer), emails);
+    storage[emailsStorageKey(forceIssuer)] = JSON.stringify(emails);
+  }
+
+/*
+
+Why forceIssuerEmails?
+localStorage is a flat key value store, so we couldn't do
+* storage.default.emails and storage.fxos.emails
+* dynamic keys (such as using fxos.login.persona.org) don't work well with 
+removeItem and other APIs here.
+* We can refactor all writes to emails to use a default or issuer based bucket
+
+*/
+
   function clear() {
+    console.log('CLEAR called nuking forceIssuerEmails');
+    console.log('storage.forceissuerEmails was ', storage.forceissuerEmails);
     storage.removeItem("emails");
+    storage.removeItem("forceIssuerEmails");
     storage.removeItem("siteInfo");
     storage.removeItem("managePage");
     // Ensure there are default values after they are removed.  This is
@@ -60,6 +86,7 @@ BrowserID.Storage = (function() {
     _.each({
       emailToUserID: {},
       emails: {},
+      forceIssuerEmails: {},
       interaction_data: {},
       loggedIn: {},
       main_site: {},
@@ -77,7 +104,7 @@ BrowserID.Storage = (function() {
 
   function getEmails() {
     try {
-      var emails = JSON.parse(storage.emails || "{}");
+      var emails = JSON.parse(storage[emailsStorageKey(null)] || "{}");
       if (emails !== null)
         return emails;
     } catch(e) {
@@ -86,6 +113,16 @@ BrowserID.Storage = (function() {
     // if we had a problem parsing or the emails are null
     clear();
     return {};
+  }
+
+  function getForceIssuerEmails(forceIssuer) {
+    var emails = {};
+    console.log('emailsStorageKey(forceIssuer)=', emailsStorageKey(forceIssuer));
+    console.log('storage[key]=', storage[emailsStorageKey(forceIssuer)]);
+    try {
+      var emails = JSON.parse(storage[emailsStorageKey(forceIssuer)] || "{}");
+    } catch(e) {}
+    return emails || {};
   }
 
   function getEmailCount() {
@@ -98,10 +135,24 @@ BrowserID.Storage = (function() {
     return ids && ids[email];
   }
 
+  function getForceIssuerEmail(email, forceIssuer) {
+    var ids = getForceIssuerEmails(forceIssuer);
+    console.log('getForceIssuerEmails(' + forceIssuer + ') = ', ids);
+    console.log(Object.keys(ids) );
+    console.log((typeof ids) + ' ' + ids[email]);
+    return ids && ids[email];
+  }
+
   function addEmail(email, obj) {
     var emails = getEmails();
     emails[email] = obj;
     storeEmails(emails);
+  }
+
+  function addForceIssuerEmail(email, forceIssuer, obj) {
+    var emails = getForceIssuerEmails(forceIssuer);
+    emails[email] = obj;
+    storeForceIssuerEmails(emails, forceIssuer);
   }
 
   function addPrimaryEmail(email, obj) {
@@ -117,6 +168,7 @@ BrowserID.Storage = (function() {
   }
 
   function removeEmail(email) {
+
     var emails = getEmails();
     if(emails[email]) {
       delete emails[email];
@@ -156,6 +208,20 @@ BrowserID.Storage = (function() {
     else {
       throw new Error("unknown email address");
     }
+  }
+
+  // This is not ideal and definately a hack...
+  function updateForceIssuerStorage(forceIssuer) {
+    if ('default' === forceIssuer) return;
+    
+    var ids = getEmails();
+    _.each(_.keys(ids), function (email) {
+      if (ids[email].cert) delete ids[email].cert;
+      if (ids[email].priv) delete ids[email].priv;
+      if (ids[email].pub) delete ids[email].pub;
+      if (ids[email].type) delete ids[email].type;
+    });
+    storage['forceIssuerEmails'] = JSON.stringify(ids);
   }
 
   function setReturnTo(returnToURL) {
@@ -437,6 +503,7 @@ BrowserID.Storage = (function() {
      * @method addEmail
      */
     addEmail: addEmail,
+    addForceIssuerEmail: addForceIssuerEmail,
     /**
      * Add a primary address
      * @method addPrimaryEmail
@@ -452,6 +519,7 @@ BrowserID.Storage = (function() {
      * @method getEmails
      */
     getEmails: getEmails,
+    getForceIssuerEmails: getForceIssuerEmails,
 
     /**
      * Get the number of stored emails
@@ -466,6 +534,7 @@ BrowserID.Storage = (function() {
      * @method getEmail
      */
     getEmail: getEmail,
+    getForceIssuerEmail: getForceIssuerEmail,
     /**
      * Remove an email address, its key pairs, and any sites associated with
      * email address.
@@ -479,6 +548,12 @@ BrowserID.Storage = (function() {
      * @method invalidateEmail
      */
     invalidateEmail: invalidateEmail,
+    /**
+     * TODO document
+     * Copies localStorage.emails into localStorage.forceIssuerEmails, losing
+     * any existing certs in either space.
+     */
+    updateForceIssuerStorage: updateForceIssuerStorage,
 
     site: {
       /**

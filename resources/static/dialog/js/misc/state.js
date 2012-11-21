@@ -31,6 +31,8 @@ BrowserID.State = (function() {
         redirecting = false,
         handleState = function(msg, callback) {
           me.subscribe(msg, function(msg, info) {
+	    $.get('/HANDLE:' + msg);
+	    console.log('handling ' + msg + ' with ', info);
             // Save a snapshot of the current state off to the momentos. If
             // a state is ever cancelled, this momento will be used as the
             // new state.
@@ -117,6 +119,9 @@ BrowserID.State = (function() {
       self.hostname = info.hostname;
       self.siteName = info.siteName || info.hostname;
       self.siteTOSPP = !!(info.privacyPolicy && info.termsOfService);
+      console.log(info);
+      self.forceIssuer = user.forceIssuer = info.forceIssuer;
+      console.log('start setting user.forceIssuer=', user.forceIssuer);
 
       startAction(false, "doRPInfo", info);
 
@@ -156,9 +161,11 @@ BrowserID.State = (function() {
     });
 
     handleState("authenticate", function(msg, info) {
+      console.log('state authenticate', info, 'self=', self);
       _.extend(info, {
         siteName: self.siteName,
-        siteTOSPP: self.siteTOSPP
+        siteTOSPP: self.siteTOSPP,
+	forceIssuer: self.forceIssuer
       });
 
       startAction("doAuthenticate", info);
@@ -191,15 +198,26 @@ BrowserID.State = (function() {
       complete(info.complete);
     });
 
-    handleState("password_set", function(msg, info) {
-      /* A password can be set for one of three reasons - 1) This is a new user
-       * or 2) a user is adding the first secondary address to an account that
-       * consists only of primary addresses, or 3) an existing user has
-       * forgotten their password and wants to reset it.  #1 is taken care of
-       * by newUserEmail, #2 by addEmailEmail, #3 by resetPasswordEmail.
-       */
-      info = _.extend({ email: self.newUserEmail || self.addEmailEmail || self.resetPasswordEmail }, info);
+    handleState("new_fxaccount", function(msg, info) {
+      self.newFxAccountEmail = info.email;
+      startAction(false, "doSetPassword", info);
+      complete(info.complete);
+    });
 
+    handleState("password_set", function(msg, info) {
+      /* A password can be set for several reasons
+       * 1) This is a new user
+       * 2) A user is adding the first secondary address to an account that
+       * consists only of primary addresses
+       * 3) an existing user has forgotten their password and wants to reset it.
+       * 4) RP is using forceIssuer and we have a primary email address with
+       * no password for the user
+       * #1 is taken care of by newUserEmail, #2 by addEmailEmail, #3 by resetPasswordEmail,
+       * and #4 by fxAccountEmail
+       */
+      info = _.extend({ email: self.newUserEmail || self.addEmailEmail ||
+                               self.resetPasswordEmail || self.newFxAccountEmail}, info);
+      console.log('STATE password_set', info);
       if(self.newUserEmail) {
         startAction(false, "doStageUser", info);
       }
@@ -208,6 +226,10 @@ BrowserID.State = (function() {
       }
       else if(self.resetPasswordEmail) {
         startAction(false, "doStageResetPassword", info);
+      }
+      else if(self.newFxAccountEmail) {
+        startAction(false, "doStageUser", info);
+        //startAction(false, "doStageFxAccountPassword", info);
       }
     });
 
@@ -293,15 +315,21 @@ BrowserID.State = (function() {
 
     handleState("email_chosen", function(msg, info) {
       var email = info.email,
-          idInfo = storage.getEmail(email);
-
-      self.email = email;
+          idInfo;
+      if ('default' === self.forceIssuer)
+	idInfo = storage.getEmail(email);
+      else
+        idInfo = storage.getForceIssuerEmail(email, self.forceIssuer);
+      console.log('state.email_chosen idInfo=', idInfo);
+      // Maybe use a second global variable so we know which email address was chosen?
+      self.email = user.forceIssuerEmail = email;
 
       function oncomplete() {
         complete(info.complete);
       }
 
       if (!idInfo) {
+	console.log('state.email_chosen nothing in local storage for ', self.email);
         throw new Error("invalid email");
       }
 
@@ -397,7 +425,9 @@ BrowserID.State = (function() {
     });
 
     handleState("generate_assertion", function(msg, info) {
-      startAction("doGenerateAssertion", info);
+      var issuer = self.forceIssuer || 'default';
+      startAction("doGenerateAssertion", _.extend({ forceIssuer: issuer },
+						  info));
     });
 
     handleState("forgot_password", function(msg, info) {

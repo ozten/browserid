@@ -11,13 +11,15 @@ BrowserID.Modules.SetPassword = (function() {
       sc;
 
   function submit(callback) {
+    console.log('submit called');
     /*jshint validthis: true*/
     var pass = dom.getInner("#password"),
         vpass = dom.getInner("#vpassword"),
         options = this.options;
-
+    console.log('with ', pass, vpass, options);
     var valid = bid.Validation.passwordAndValidationPassword(pass, vpass);
     if(valid) {
+      console.log('valid!');
       this.publish("password_set", { password: pass });
     }
 
@@ -37,6 +39,7 @@ BrowserID.Modules.SetPassword = (function() {
       self.renderDialog("set_password", {
         email: options.email,
         password_reset: !!options.password_reset,
+        fxaccount: !!options.fxaccount,
         cancelable: options.cancelable !== false,
         personaTOSPP: options.personaTOSPP
       });

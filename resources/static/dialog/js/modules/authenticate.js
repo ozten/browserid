@@ -16,6 +16,7 @@ BrowserID.Modules.Authenticate = (function() {
       dom = bid.DOM,
       lastEmail = "",
       addressInfo,
+      forceIssuer,
       hints = ["returning","start","addressInfo"],
       CONTENTS_SELECTOR = "#formWrap .contents",
       AUTH_FORM_SELECTOR = "#authentication_form",
@@ -35,7 +36,6 @@ BrowserID.Modules.Authenticate = (function() {
   function initialState(info) {
     /*jshint validthis: true*/
     var self=this;
-
     self.submit = checkEmail;
     if(info && info.email && info.type === "secondary" && info.known) {
       enterPasswordState.call(self, info.ready);
@@ -51,7 +51,7 @@ BrowserID.Modules.Authenticate = (function() {
     /*jshint validthis: true*/
     var email = getEmail(),
         self = this;
-
+    console.log('checkEmail called with ', info);
     if (!email) return;
 
     dom.setAttr(EMAIL_SELECTOR, 'disabled', 'disabled');
@@ -60,7 +60,7 @@ BrowserID.Modules.Authenticate = (function() {
     }
     else {
       showHint("addressInfo");
-      user.addressInfo(email, onAddressInfo,
+      user.addressInfo(email, this.forceIssuer, onAddressInfo,
         self.getErrorDialog(errors.addressInfo));
     }
 
@@ -70,6 +70,9 @@ BrowserID.Modules.Authenticate = (function() {
 
       if(info.type === "primary") {
         self.close("primary_user", info, info);
+      }
+      else if (info.known && info.state === "transition_no_password") {
+        createFxAccount.call(self);
       }
       else if(info.known) {
         enterPasswordState.call(self);
@@ -86,6 +89,18 @@ BrowserID.Modules.Authenticate = (function() {
 
     if (email) {
       self.close("new_user", { email: email }, { email: email });
+    } else {
+      complete(callback);
+    }
+  }
+
+  function createFxAccount(callback) {
+    /*jshint validthis: true*/
+    var self=this,
+        email = getEmail();
+
+    if (email) {
+      self.close("new_fxaccount", { email: email, fxaccount: true }, { email: email });
     } else {
       complete(callback);
     }
@@ -177,12 +192,17 @@ BrowserID.Modules.Authenticate = (function() {
 
   var Module = bid.Modules.PageModule.extend({
     start: function(options) {
+
+      console.log('action authenticate started with ', options);
+
       options = options || {};
 
       addressInfo = null;
       lastEmail = options.email || "";
 
       var self=this;
+
+      self.forceIssuer = options.forceIssuer;
 
       dom.addClass(BODY_SELECTOR, AUTHENTICATION_CLASS);
       dom.addClass(BODY_SELECTOR, FORM_CLASS);

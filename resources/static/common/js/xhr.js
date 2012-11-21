@@ -130,6 +130,7 @@ BrowserID.XHR = (function() {
     withContext(function() {
       var data = options.data || {};
       data.csrf = data.csrf || csrf_token;
+      console.log('POST', data);
       var req = _.extend(options, {
         type: "POST",
         data: JSON.stringify(data),

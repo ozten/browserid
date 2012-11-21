@@ -20,7 +20,8 @@ BrowserID.User = (function() {
       POLL_DURATION = 3000,
       pollDuration = POLL_DURATION,
       stagedEmail,
-      stagedPassword;
+      stagedPassword,
+      forceIssuer;
 
   function prepareDeps() {
     /*globals require:true*/
@@ -160,6 +161,9 @@ BrowserID.User = (function() {
 
   function addressVerificationPoll(checkFunc, email, onSuccess, onFailure) {
     function userVerified(completionStatus) {
+      console.log('userVerified called completionStatus=', completionStatus,
+        ' stagedEmail=', stagedEmail, ' stagedPassword=', stagedPassword);
+
       if (stagedEmail && stagedPassword) {
         // The user has set their email and password as part of the
         // staging flow. Log them in now just to make sure their
@@ -167,7 +171,9 @@ BrowserID.User = (function() {
         // backend incorrectly sends a mustAuth status to users who have just
         // completed verification. See issue #1682
         // https://github.com/mozilla/browserid/issues/1682
+	console.log('Attempting to authenticate');
         User.authenticate(stagedEmail, stagedPassword, function(authenticated) {
+	  console.log('authenticated=', authenticated);
           completionStatus = authenticated ? "complete" : "mustAuth";
           completeVerification(completionStatus);
         }, onFailure);
@@ -218,6 +224,8 @@ BrowserID.User = (function() {
       // they just completed a registration.
       registrationComplete = true;
 
+      console.log('completeVerification called, calling User.syncEmails status=', status);
+
       if (status === "complete") {
         User.syncEmails(function() {
           complete(onSuccess, status);
@@ -236,6 +244,7 @@ BrowserID.User = (function() {
         //   'pending'  - a registration is in progress
         //   'mustAuth' - user must authenticate
         //   'noRegistration' - no registration is in progress
+	console.log('poll status=', status);
         if (status === "complete" || status === "mustAuth") {
           userVerified(status);
         }
@@ -272,6 +281,7 @@ BrowserID.User = (function() {
    * @method persistEmailKeypair
    * @param {string} email - Email address to persist.
    * @param {object} keypair - Key pair to save
+   * @param {string} forceIssuer - TODO
    * @param {function} [onComplete] - Called on successful completion.
    * @param {function} [onFailure] - Called on error.
    */
@@ -295,14 +305,53 @@ BrowserID.User = (function() {
   }
 
   /**
+   * Persist an address and key pair locally from a forced issuer.
+   * @method persistEmailKeypair
+   * @param {string} email - Email address to persist.
+   * @param {object} keypair - Key pair to save
+   * @param {string} cert - TODO
+   * @param {string} forceIssuer - TODO
+   * @param {function} [onComplete] - Called on successful completion.
+   * @param {function} [onFailure] - Called on error.
+   */
+  function persistForceIssuerEmailKeypair(email, type, keypair, cert, forceIssuer, onComplete, onFailure) {
+    checkEmailType(type);
+    var now = new Date();
+    var email_obj = storage.getForceIssuerEmails(forceIssuer)[email] || {
+      created: now,
+      type: type
+    };
+
+    _.extend(email_obj, {
+      updated: now,
+      pub: keypair.publicKey.toSimpleObject(),
+      priv: keypair.secretKey.toSimpleObject(),
+      cert: cert
+    });
+
+    storage.addForceIssuerEmail(email, forceIssuer, email_obj);
+    if (onComplete) onComplete(true);
+  }
+
+  /**
    * Certify an identity with the server, persist it to storage if the server
    * says the identity is good
    * @method certifyEmailKeypair
    */
   function certifyEmailKeypair(email, keypair, onComplete, onFailure) {
-    network.certKey(email, keypair.publicKey, function(cert) {
+    console.log('calling network certkey with issuer=' + User.forceIssuer);
+    network.certKey(email, keypair.publicKey, User.forceIssuer, function(cert) {
       // emails that *we* certify are always secondary emails
-      persistEmailKeypair(email, "secondary", keypair, cert, onComplete, onFailure);
+      var forceIssuer = User.forceIssuer;
+      console.log('network.certKey callback... forceIssuer=', forceIssuer);
+      if ('default' !== forceIssuer) {
+	console.log('persisting to force issuer storage');
+        persistForceIssuerEmailKeypair(email, "secondary", keypair, cert, forceIssuer, onComplete, onFailure);
+      } else {
+	console.log('persisting to default storage');
+        persistEmailKeypair(email, "secondary", keypair, cert, onComplete, onFailure);
+      }
+
     }, onFailure);
   }
 
@@ -673,7 +722,7 @@ BrowserID.User = (function() {
      * @param {function} [onFailure] - Called on XHR failure.
      */
     requestPasswordReset: function(email, password, onComplete, onFailure) {
-      User.addressInfo(email, function(info) {
+      User.addressInfo(email, null, function(info) {
         // user is not known.  Can't request a password reset.
         if (!info.known) {
           complete(onComplete, { success: false, reason: "invalid_user" });
@@ -807,13 +856,14 @@ BrowserID.User = (function() {
      * Sync local identities with login.persona.org.  Generally should not need to
      * be called.
      * @method syncEmails
+     * @param {string} - TODO
      * @param {function} [onComplete] - Called whenever complete.
      * @param {function} [onFailure] - Called on error.
      */
     syncEmails: function(onComplete, onFailure) {
       cleanupIdentities(function () {
         var issued_identities = User.getStoredEmailKeypairs();
-
+	console.log('user.syncEmails cleaning up global forceIssuer=', bid.User.forceIssuer);
         network.listEmails(function(emails) {
           // lists of emails
           var client_emails = _.keys(issued_identities);
@@ -831,7 +881,7 @@ BrowserID.User = (function() {
           // these are new emails
           _.each(emails_to_add, function(email) {
             var emailInfo = emails[email];
-
+	    console.log('user.syncEmails (after listEmails) adding ' + email);
             persistEmail({
               email: email,
               type: emailInfo.type || "secondary",
@@ -851,6 +901,8 @@ BrowserID.User = (function() {
 
             storage.addEmail(email, storedEmailInfo);
           });
+
+          storage.updateForceIssuerStorage(User.forceIssuer);
 
           complete(onComplete);
 
@@ -892,6 +944,8 @@ BrowserID.User = (function() {
      * @param {function} [onFailure] - Called on error.
      */
     checkAuthenticationAndSync: function(onComplete, onFailure) {
+      console.log('checkAuthenticationAndSync called, calling User.syncEmails');
+      console.log('forceIssuer=', User.forceIssuer, 'forceIssuerEmail=', User.forceIssuerEmail);
       User.checkAuthentication(function(authenticated) {
         if (authenticated) {
           User.syncEmails(function() {
@@ -910,11 +964,13 @@ BrowserID.User = (function() {
      * @method authenticate
      * @param {string} email - Email address to authenticate.
      * @param {string} password - Password.
+     * @param {string} forceIssuer - TODO
      * @param {function} [onComplete] - Called on completion with status. true
      * if user is authenticated, false otw.
      * @param {function} [onFailure] - Called on error.
      */
     authenticate: function(email, password, onComplete, onFailure) {
+      console.log('authenticate called, calling User.syncEmails');
       // password is out of length range.  Don't even send the request
       // and waste backend cycles. See issue #2032.
       if (password.length < bid.PASSWORD_MIN_LENGTH
@@ -927,7 +983,10 @@ BrowserID.User = (function() {
         setAuthenticationStatus(authenticated);
 
         if(authenticated) {
-          User.syncEmails(function() {
+
+	  if ('default' !== User.forceIssuer) User.forceIssuerEmail = email;
+
+          User.syncEmails(null, function() {
             onComplete && onComplete(authenticated);
           }, onFailure);
         } else if (onComplete) {
@@ -951,6 +1010,7 @@ BrowserID.User = (function() {
         setAuthenticationStatus(authenticated);
 
         if (authenticated) {
+	  console.log('authenticateWithAssertion called, calling User.syncEmails');
           User.syncEmails(function() {
             complete(onComplete, authenticated);
           }, onFailure);
@@ -979,6 +1039,7 @@ BrowserID.User = (function() {
      * (is it a primary or a secondary)
      * @method addressInfo
      * @param {string} email - Email address to check.
+     * @param {string} issuer - Force a specific Issuer by specifing a domain. null for default.
      * @param {function} [onComplete] - Called with an object on success,
      *   containing these properties:
      *     type: <secondary|primary>
@@ -992,7 +1053,7 @@ BrowserID.User = (function() {
      *        if type is secondary.
      * @param {function} [onFailure] - Called on XHR failure.
      */
-    addressInfo: function(email, onComplete, onFailure) {
+    addressInfo: function(email, issuer, onComplete, onFailure) {
       function complete(info) {
         info.email = email;
 
@@ -1004,7 +1065,7 @@ BrowserID.User = (function() {
         complete(addressCache[email]);
       }
       else {
-        network.addressInfo(email, function(info) {
+        network.addressInfo(email, issuer, function(info) {
           info.email = email;
           if(info.type === "primary") {
             User.isEmailRegistered(email, function(registered) {
@@ -1117,12 +1178,13 @@ BrowserID.User = (function() {
      * server a keypair for the given email address.
      * @method syncEmailKeypair
      * @param {string} email - Email address.
-     * @param {string} [issuer] - Issuer of keypair.
+     * @param {string} forceIssuer - Issuer of keypair.
      * @param {function} [onComplete] - Called on completion.  Called with
      * status parameter - true if successful, false otw.
      * @param {function} [onFailure] - Called on error.
      */
     syncEmailKeypair: function(email, onComplete, onFailure) {
+      console.log('syncEmailKeypair called forceIssuer=' + User.forceIssuer);
       prepareDeps();
       // jwcrypto depends on a random seed being set to generate a keypair.
       // The seed is set with a call to network.withContext.  Ensure the
@@ -1137,14 +1199,17 @@ BrowserID.User = (function() {
 
 
     /**
-     * Get an assertion for an identity
+     * Get an assertion for an identity, optionally backed by a specific issuer
      * @method getAssertion
      * @param {string} email - Email to get assertion for.
      * @param {string} audience - Audience to use for the assertion.
+     * @param {string} forceIssuer - IdP that should back the assertion.
+     *                   Value is a hostname or the string 'default'.
      * @param {function} [onComplete] - Called with assertion, null otw.
      * @param {function} [onFailure] - Called on error.
      */
-    getAssertion: function(email, audience, onComplete, onFailure) {
+    getAssertion: function(email, audience, forceIssuer, onComplete, onFailure) {
+      console.log('user.getAssertion called email=', email, ' forcedIssuer=', forceIssuer);
       // we use the current time from the browserid servers
       // to avoid issues with clock drift on user's machine.
       // (issue #329)
@@ -1152,9 +1217,16 @@ BrowserID.User = (function() {
           onComplete && onComplete(status);
         }
 
-        var storedID = storage.getEmail(email),
+        var storedID,
             assertion,
             self=this;
+
+        if ('default' === forceIssuer)
+          storedID = storage.getEmail(email);
+        else
+          storedID = storage.getForceIssuerEmail(email, forceIssuer);
+
+      console.log('getAssertion started, storedID=', storedID);
 
         function createAssertion(idInfo) {
           network.serverTime(function(serverTime) {
@@ -1187,14 +1259,16 @@ BrowserID.User = (function() {
             }, 0);
           }
           else {
-            if (storedID.type === "primary") {
+	    console.log('storedID', storedID);
+            // TODO what will the type of forceIssuer email addresses be?
+            if (storedID.type === "primary" && 'default' === forcedIsser) {
               // first we have to get the address info, then attempt
               // a provision, then if the user is provisioned, go and get an
               // assertion.
-              User.addressInfo(email, function(info) {
+              User.addressInfo(email, null, function(info) {
                 User.provisionPrimaryUser(email, info, function(status) {
                   if (status === "primary.verified") {
-                    User.getAssertion(email, audience, onComplete, onFailure);
+                    User.getAssertion(email, audience, forceIssuer, onComplete, onFailure);
                   }
                   else {
                     complete(null);
@@ -1206,7 +1280,7 @@ BrowserID.User = (function() {
               // we have no key for this identity, go generate the key,
               // sync it and then get the assertion recursively.
               User.syncEmailKeypair(email, function(status) {
-                User.getAssertion(email, audience, onComplete, onFailure);
+                User.getAssertion(email, audience, forceIssuer, onComplete, onFailure);
               }, onFailure);
             }
           }

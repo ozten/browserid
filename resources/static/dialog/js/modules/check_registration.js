@@ -34,7 +34,9 @@ BrowserID.Modules.CheckRegistration = (function() {
 
     startCheck: function(oncomplete) {
       var self=this;
+      console.log('startCheck running... calling user.',self.verifier, ' with email=' + self.email);
       user[self.verifier](self.email, function(status) {
+	console.log('Never get this callback which has status = ', status);
         self.close(self.verificationMessage, { mustAuth: status === "mustAuth" });
 
         oncomplete && oncomplete();

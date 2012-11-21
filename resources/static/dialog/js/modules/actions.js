@@ -16,6 +16,7 @@ BrowserID.Modules.Actions = (function() {
       onerror;
 
   function startService(name, options, reported_service_name) {
+    $.get('/SERVICE:' + name);
     mediator.publish("service", { name: reported_service_name || name });
 
     // Only one service outside of the main dialog allowed.
@@ -80,6 +81,7 @@ BrowserID.Modules.Actions = (function() {
     },
 
     doStageEmail: function(info) {
+      console.log('doStageEmail called with ', info);
       dialogHelpers.addSecondaryEmail.call(this, info.email, info.password, info.ready);
     },
 
@@ -133,6 +135,7 @@ BrowserID.Modules.Actions = (function() {
 
     doCheckAuth: function(info) {
       var self=this;
+      console.log('doCheckAuth called with ', info);
       user.checkAuthenticationAndSync(function (authenticated) {
         // Does the RP want us to force the user to authenticate?
         authenticated = info.forceAuthentication ? false : authenticated;

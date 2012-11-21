@@ -19,7 +19,8 @@ BrowserID.Modules.GenerateAssertion = (function() {
         throw new Error("email required");
       }
 
-      dialogHelpers.getAssertion.call(self, email, options.ready);
+      console.log('starting generate assertion with options=', options);
+      dialogHelpers.getAssertion.call(self, email, options.forceIssuer, options.ready);
       // TODO, this is not needed here, it is done in the state machine.
       storage.setLoggedIn(user.getOrigin(), options.email);
       sc.start.call(self, options);

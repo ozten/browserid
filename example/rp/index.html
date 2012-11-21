@@ -145,7 +145,8 @@ function checkAssertion(assertion) {
     dataType: "json",
     data: {
       assertion: assertion,
-      audience: window.location.protocol + "//" + window.location.host
+      audience: window.location.protocol + "//" + window.location.host,
+      forceIssuer: $('#forceIssuer').attr('checked') ? "issuer.domain" : undefined
     },
     success: function(data, textStatus, jqXHR) {
       var old = $(".loginEvents > pre").text() + "\n";

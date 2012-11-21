@@ -59,13 +59,14 @@ BrowserID.verifySecondaryAddress = (function() {
     var self = this,
         pass = dom.getInner("#password") || undefined,
         inputValid = !self.mustAuth || validation.password(pass);
-
+    console.log('verify_2nd_add pass=' + pass + ' inputValid=', inputValid);
     if (inputValid) {
+      console.log('verify_2nd_add verifyFunction=', self.verifyFunction);
       user[self.verifyFunction](self.token, pass, function(info) {
         dom.addClass("body", "complete");
 
         var verified = info.valid;
-
+	console.log('verify_2nd_add user.func callback with info=', info);
         if (verified) {
           pageHelpers.replaceFormWithNotice("#congrats", function() {
             // set the loggedIn status for the site.  This allows us to get
@@ -75,7 +76,6 @@ BrowserID.verifySecondaryAddress = (function() {
             // has had a chance to finish its business.
             /*jshint newcap:false*/
             storage.setLoggedIn(URLParse(self.redirectTo).originOnly(), self.email);
-
             countdownTimeout.call(self, function() {
               self.doc.location = self.redirectTo;
               complete(oncomplete, verified);
@@ -104,11 +104,13 @@ BrowserID.verifySecondaryAddress = (function() {
     /*jshint validthis: true*/
     var self=this;
     user.tokenInfo(self.token, function(info) {
+	console.log('verify_secondary_address startVerification user.tokenInfo callback with info=', info);
       if (info) {
         self.redirectTo = info.returnTo || "https://login.persona.org/";
         self.email = info.email;
         showRegistrationInfo.call(self, info);
         self.mustAuth = info.must_auth;
+
         if (self.mustAuth) {
           // These are users who are authenticating in a different browser or
           // session than the initiator.
