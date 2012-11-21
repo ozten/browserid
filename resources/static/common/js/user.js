@@ -518,13 +518,16 @@ BrowserID.User = (function() {
      * @param {function} [onFailure] - called on failure
      */
     provisionPrimaryUser: function(email, info, onComplete, onFailure) {
-
+      console.log('user.provisionPrimaryUser');
       User.primaryUserAuthenticationInfo(email, info, function(authInfo) {
+	console.log('callback authInfo=', authInfo);
         if(authInfo.authenticated) {
+	  console.log('calling persistEmailKeypair');
           persistEmailKeypair(email, "primary", authInfo.keypair, authInfo.cert,
             function() {
+	  console.log('persistEmailKeypair callback success');
               // We are getting an assertion for persona.org.
-              User.getAssertion(email, "https://login.persona.org", function(assertion) {
+              User.getAssertion(email, "https://login.persona.org", User.forceIssuer, function(assertion) {
                 if (assertion) {
                   onComplete("primary.verified", {
                     assertion: assertion
@@ -983,10 +986,10 @@ BrowserID.User = (function() {
         setAuthenticationStatus(authenticated);
 
         if(authenticated) {
-
+	  console.log('force issuer is ', User.forceIssuer);
 	  if ('default' !== User.forceIssuer) User.forceIssuerEmail = email;
 
-          User.syncEmails(null, function() {
+          User.syncEmails(function() {
             onComplete && onComplete(authenticated);
           }, onFailure);
         } else if (onComplete) {

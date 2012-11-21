@@ -15,8 +15,9 @@ BrowserID.Modules.ProvisionPrimaryUser = (function() {
     function complete(status) {
       oncomplete && oncomplete(status);
     }
-
+    console.log('provisi_prim_user provPrimUser call email=', email, ' auth=', auth, ' prov=', prov);
     user.provisionPrimaryUser(email, {auth: auth, prov: prov}, function(status, status_info) {
+      console.log('provisi_prim_user user.provPPrimUser callback status=', status, ' status_info=', status_info);
       switch(status) {
         case "primary.already_added":
           // XXX Is this status possible?
@@ -46,7 +47,7 @@ BrowserID.Modules.ProvisionPrimaryUser = (function() {
   var ProvisionPrimaryUser = bid.Modules.PageModule.extend({
     start: function(options) {
       options = options || {};
-
+      console.log('provision_primary_user start');
       var self = this,
           email = options.email,
           auth = options.auth,
@@ -57,6 +58,9 @@ BrowserID.Modules.ProvisionPrimaryUser = (function() {
       }
 
       user.addressInfo(email, null, function(status) {
+
+	console.log('user.addInfo called ', status);
+
         self.addressInfo = status;
         if(status.type === "primary") {
           provisionPrimaryUser.call(self, email, status.auth, status.prov);

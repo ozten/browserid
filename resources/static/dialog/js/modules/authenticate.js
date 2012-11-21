@@ -68,6 +68,8 @@ BrowserID.Modules.Authenticate = (function() {
       addressInfo = info;
       dom.removeAttr(EMAIL_SELECTOR, 'disabled');
 
+      console.log('authenticate onAddressInfo info=', info);
+
       if(info.type === "primary") {
         self.close("primary_user", info, info);
       }
@@ -113,7 +115,8 @@ BrowserID.Modules.Authenticate = (function() {
         self = this;
 
     if (email && pass) {
-      dialogHelpers.authenticateUser.call(self, email, pass, function(authenticated) {
+      console.log('authenticate authenticate calling helpers.auth');
+      dialogHelpers.authenticateUser.call(self, email, pass, user.forceIssuer, function(authenticated) {
         if (authenticated) {
           self.close("authenticated", {
             email: email
@@ -161,6 +164,8 @@ BrowserID.Modules.Authenticate = (function() {
     var self=this;
 
     dom.setInner(PASSWORD_SELECTOR, "");
+
+    console.log('authenticate enterPasswordState');
 
     self.publish("enter_password", addressInfo);
     self.submit = authenticate;

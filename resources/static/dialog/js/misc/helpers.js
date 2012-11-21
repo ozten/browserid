@@ -63,8 +63,10 @@
     /*jshint validthis:true*/
     var self=this;
     self.publish("password_submit");
-    user.authenticate(email, pass, forceIssuer,
+    console.log('helpers calling user.authenticate');
+    user.authenticate(email, pass,
       function (authenticated) {
+        console.log('callback authenticated=', authenticated);
         if (authenticated) {
           self.publish("authentication_success");
         }

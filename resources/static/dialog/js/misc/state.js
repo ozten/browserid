@@ -120,7 +120,7 @@ BrowserID.State = (function() {
       self.siteName = info.siteName || info.hostname;
       self.siteTOSPP = !!(info.privacyPolicy && info.termsOfService);
       console.log(info);
-      self.forceIssuer = user.forceIssuer = info.forceIssuer;
+      self.forceIssuer = user.forceIssuer = !!info.forceIssuer ? info.forceIssuer : 'default';
       console.log('start setting user.forceIssuer=', user.forceIssuer);
 
       startAction(false, "doRPInfo", info);

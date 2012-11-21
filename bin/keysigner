@@ -83,7 +83,8 @@ try {
 app.post('/wsapi/cert_key', validate(certKey.args), function(req, resp) {
   var startTime = new Date();
   var forceIssuer = req.params.forceIssuer;
-  if (config.get('forcable_issuers').indexOf(forceIssuer) === -1) {
+  if ('default' !== forceIssuer &&
+      config.get('forcable_issuers').indexOf(forceIssuer) === -1) {
     logger.error("Invalid issuer [" + forceIssuer + "]");
     return httputils.badRequest("Invalid issuer, unable to issue certificate");
   }
