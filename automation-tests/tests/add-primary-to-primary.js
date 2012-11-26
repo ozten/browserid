@@ -15,7 +15,8 @@ CSS = require('../pages/css.js'),
 dialog = require('../pages/dialog.js'),
 runner = require('../lib/runner.js'),
 testSetup = require('../lib/test-setup.js'),
-user = require('../lib/user.js');
+user = require('../lib/user.js'),
+timeouts = require('../lib/timeouts.js');
 
 var browser,
     primaryEmail,
@@ -24,21 +25,23 @@ var browser,
 runner.run(module, {
   "setup all the things": function(done) {
     testSetup.setup({ b:1, e:2 }, function(err, fix) {
-      browser = fix.b[0];
-      primaryEmail = {
-        email: fix.e[0],
-        pass: fix.e[0].split('@')[0],
-      };
-      secondPrimaryEmail = {
-        email: fix.e[1],
-        pass: fix.e[1].split('@')[0],
-      };
+      if (fix) {
+        browser = fix.b[0];
+        primaryEmail = {
+          email: fix.e[0],
+          pass: fix.e[0].split('@')[0],
+        };
+        secondPrimaryEmail = {
+          email: fix.e[1],
+          pass: fix.e[1].split('@')[0],
+        };
+      }
       done(err);
     });
   },
   //XXX figure out how to parameterize the RP
   "start the session": function(done) {
-    browser.newSession(testSetup.sessionOpts, done);
+    testSetup.newBrowserSession(browser, done);
   },
   //XXX obviously in need of refactoring between this primary and the second one.
   "signup a new account with a primary": function(done) {
@@ -55,7 +58,9 @@ runner.run(module, {
       // make sense to me, since wclick implicitly calls wfind first o_O.
       .wfind(CSS['dialog'].verifyWithPrimaryButton)
       .wclick(CSS['dialog'].verifyWithPrimaryButton)
-      // continuing past that button
+      // continuing past that button. Wait to give the dialog time to
+      // load.
+      .delay(timeouts.DEFAULT_LOAD_PAGE_MS)
       .wtype(CSS['eyedee.me'].newPassword, primaryEmail.pass)
       .wclick(CSS['eyedee.me'].createAccountButton)
       .wwin()
@@ -82,7 +87,9 @@ runner.run(module, {
       // is not clickable immediately after being added to the DOM.
       .wfind(CSS['dialog'].verifyWithPrimaryButton)
       .wclick(CSS['dialog'].verifyWithPrimaryButton)
-      // continuing past that button
+      // continuing past that button. Wait to give the dialog time to
+      // load.
+      .delay(timeouts.DEFAULT_LOAD_PAGE_MS)
       .wtype(CSS['eyedee.me'].newPassword, secondPrimaryEmail.pass)
       .wclick(CSS['eyedee.me'].createAccountButton)
       .wwin()
@@ -95,4 +102,8 @@ runner.run(module, {
   "shut down remaining browsers": function(done) {
     browser.quit(done);
   }
-}, {suiteName: path.basename(__filename)});
+},
+{
+  suiteName: path.basename(__filename),
+  cleanup: function(done) { testSetup.teardown(done) }
+});

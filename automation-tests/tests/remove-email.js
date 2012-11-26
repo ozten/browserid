@@ -70,19 +70,23 @@ runner.run(module, {
   "setup all the things": function(done) {
     // this is the more compact setup syntax
     testSetup.setup({b:2, r:1, e:2}, function(err, fix) {
-      browser = fix.b[0];
-      firstPrimaryEmail = saveEmail(fix.e[0]);
-      secondPrimaryEmail = saveEmail(fix.e[1]);
-      secondaryEmail = saveEmail(fix.r[0]);
-      firstPrimaryPassword = firstPrimaryEmail.split('@')[0];
-      secondPrimaryPassword = secondPrimaryEmail.split('@')[0];
-      secondaryPassword = secondaryEmail.split('@')[0];
+      if (fix) {
+        browser = fix.b[0];
+        firstPrimaryEmail = saveEmail(fix.e[0]);
+        secondPrimaryEmail = saveEmail(fix.e[1]);
+        secondaryEmail = saveEmail(fix.r[0]);
+        firstPrimaryPassword = firstPrimaryEmail.split('@')[0];
+        secondPrimaryPassword = secondPrimaryEmail.split('@')[0];
+        secondaryPassword = secondaryEmail.split('@')[0];
+      }
       done(err);
     });
   },
+  "init browser session": function(done) {
+    testSetup.newBrowserSession(browser, done);
+  },
   "go to 123done and create a primary account": function(done) {
     browser.chain({onError: done})
-      .newSession(testSetup.sessionOpts)
       .get(persona_urls['123done'])
       .wclick(CSS['123done.org'].signInButton)
       .wwin(CSS['dialog'].windowName)
@@ -90,7 +94,8 @@ runner.run(module, {
       .wclick(CSS['dialog'].newEmailNextButton)
       // sometimes the verifyWithPrimaryButton needs to be clicked twice
       .wclick(CSS['dialog'].verifyWithPrimaryButton)
-      .wclickIfExists(CSS['dialog'].verifyWithPrimaryButton)
+      // Give eyedee.me a bit of time to load itself up.
+      .delay(timeouts.DEFAULT_LOAD_PAGE_MS)
       .wtype(CSS['eyedee.me'].newPassword, firstPrimaryPassword)
       .wclick(CSS['eyedee.me'].createAccountButton)
       .wwin()
@@ -109,7 +114,8 @@ runner.run(module, {
       .wclick(CSS['dialog'].addNewEmailButton)
       // sometimes the verifyWithPrimaryButton needs to be clicked twice
       .wclick(CSS['dialog'].verifyWithPrimaryButton)
-      .wclickIfExists(CSS['dialog'].verifyWithPrimaryButton)
+      // Give eyedee.me a bit of time to load itself up.
+      .delay(timeouts.DEFAULT_LOAD_PAGE_MS)
       .wtype(CSS['eyedee.me'].newPassword, secondPrimaryPassword)
       .wclick(CSS['eyedee.me'].createAccountButton)
       .wwin()
@@ -138,8 +144,6 @@ runner.run(module, {
   "follow link, wait for redirect, secondary should be displayed": function(done, link) {
     browser.chain({onError: done})
       .wwin()
-      // work around chrome crashing with "aw snap" issue #2691 (this is temporary!)
-      .get("about:blank")
       .get(link)
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
         done(err || assert.equal(text, secondaryEmail));
@@ -153,7 +157,7 @@ runner.run(module, {
       .wwin(CSS['dialog'].windowName)
       .wclick(CSS['dialog'].emailPrefix + getEmailIndex(secondPrimaryEmail))
       .wclick(CSS['dialog'].signInButton)
-      .wclickIfExists(CSS['dialog'].myComputerButton)
+      .wclickIfExists(CSS['dialog'].notMyComputerButton)
       .wwin()
       .wtext(CSS['123done.org'].currentlyLoggedInEmail, function(err, text) {
         done(err || assert.equal(text, secondPrimaryEmail))
@@ -167,7 +171,7 @@ runner.run(module, {
       .wwin(CSS['dialog'].windowName)
       .wclick(CSS['dialog'].emailPrefix + getEmailIndex(secondaryEmail))
       .wclick(CSS['dialog'].signInButton)
-      .wclickIfExists(CSS['dialog'].myComputerButton)
+      .wclickIfExists(CSS['dialog'].notMyComputerButton)
       .wwin()
       .wtext(CSS['myfavoritebeer.org'].currentlyLoggedInEmail, function(err, text) {
         done(err || assert.equal(text, secondaryEmail))
@@ -212,9 +216,8 @@ runner.run(module, {
       .wclick(CSS['persona.org'].signInForm.nextButton)
       .wfind(CSS['persona.org'].signInForm.verifyPrimaryButton, done);
   }
-}, {
-  cleanup: function(done) {
-    browser.quit(done);
-  },
-  suiteName: path.basename(__filename)
+},
+{
+  suiteName: path.basename(__filename),
+  cleanup: function(done) { testSetup.teardown(done) }
 });

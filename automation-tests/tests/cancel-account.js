@@ -25,9 +25,11 @@ var browser,
 function setup(done) {
   emails = [];
   user.getVerifiedUser(function(err, info) {
-    browser = info.browser;
-    secondaryEmail = saveEmail(info.email);
-    secondaryPassword = info.password;
+    if (info) {
+      browser = info.browser;
+      secondaryEmail = saveEmail(info.email);
+      secondaryPassword = info.password;
+    }
     done(err);
   });
 }
@@ -74,7 +76,6 @@ function removeEmail(email, done) {
 
 function signIn123DoneWithSecondary(browser, email, password, done) {
   browser.chain({onError: done})
-    .newSession(testSetup.sessionOpts)
     .get(persona_urls['123done'])
     .wclick(CSS['123done.org'].signInButton)
     .wwin(CSS['dialog'].windowName)
@@ -111,6 +112,10 @@ runner.run(module, {
     setup(done);
   },
 
+  "setup a browser": function(done) {
+    testSetup.newBrowserSession(browser, done);
+  },
+
   "log in to 123done using secondaryEmail": function(done) {
     signIn123DoneWithSecondary(browser, secondaryEmail,
       secondaryPassword, done);
@@ -141,6 +146,9 @@ runner.run(module, {
     setup(done);
   },
 
+  "setup a browser": function(done) {
+    testSetup.newBrowserSession(browser, done);
+  },
   "log in to 123done using secondaryEmail": function(done) {
     signIn123DoneWithSecondary(browser, secondaryEmail,
       secondaryPassword, done);
@@ -168,4 +176,8 @@ runner.run(module, {
   "shut down remaining browsers": function(done) {
     browser.quit(done);
   }
-}, {suiteName: path.basename(__filename)});
+},
+{
+  suiteName: path.basename(__filename),
+  cleanup: function(done) { testSetup.teardown(done) }
+});
