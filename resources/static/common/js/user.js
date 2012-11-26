@@ -539,6 +539,25 @@ BrowserID.User = (function() {
       primaryAuthCache = primaryAuthCache || {};
 
       // TODO check new param issuer against info.issuer
+      // Detect stale caches
+      if(idInfo && idInfo.cert) {
+            try {
+              // parse the cert
+              var cert = jwcrypto.extractComponents(idInfo.cert);
+
+              // check if this certificate is still valid.
+// AOK left off here
+              if (cert.payload.iss == serverIssuer) {
+                storage.invalidateEmail(email_address);
+              }
+
+            } catch (e) {
+              // error parsing the certificate!  Maybe it's of an old/different
+              // format?  just delete it.
+              helpers.log("error parsing cert for"+ email_address +":" + e);
+              storage.invalidateEmail(email_address);
+            }
+      }
 
       function complete(info) {
         primaryAuthCache[email] = info;
