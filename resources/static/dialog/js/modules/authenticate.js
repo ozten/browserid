@@ -16,6 +16,7 @@ BrowserID.Modules.Authenticate = (function() {
       dom = bid.DOM,
       lastEmail = "",
       addressInfo,
+      forceIssuer,
       hints = ["returning","start","addressInfo"],
       CONTENTS_SELECTOR = "#formWrap .contents",
       AUTH_FORM_SELECTOR = "#authentication_form",
@@ -26,18 +27,31 @@ BrowserID.Modules.Authenticate = (function() {
       BODY_SELECTOR = "body",
       AUTHENTICATION_CLASS = "authentication",
       FORM_CLASS = "form",
+      AUTHENTICATION_LABEL = "#authentication_form label[for=authentication_email]",
+      EMAIL_LABEL = "#authentication_form .label.email_state",
+      TRANSITION_TO_SECONDARY_LABEL = "#authentication_form .label.transition_to_secondary",
+      PASSWORD_LABEL = "#authentication_form .label.password_state",
+      IDP_SELECTOR = "#authentication_form .authentication_idp_name",
       currentHint;
 
   function getEmail() {
     return helpers.getAndValidateEmail(EMAIL_SELECTOR);
   }
 
+  function hasPassword(info) {
+    /*jshint validthis:true*/
+    return (info && info.email && info.type === "secondary" && 
+      (info.state === "known" ||
+       info.state === "transition_to_secondary" ||
+       info.state === "unverified" && this.allowUnverified));
+  }
+
   function initialState(info) {
     /*jshint validthis: true*/
     var self=this;
-
     self.submit = checkEmail;
-    if(info && info.email && info.type === "secondary" && info.known) {
+    if (hasPassword.call(self, info)) {
+      addressInfo = info;
       enterPasswordState.call(self, info.ready);
     }
     else {
@@ -51,16 +65,15 @@ BrowserID.Modules.Authenticate = (function() {
     /*jshint validthis: true*/
     var email = getEmail(),
         self = this;
-
     if (!email) return;
 
     dom.setAttr(EMAIL_SELECTOR, 'disabled', 'disabled');
-    if(info && info.type) {
+    if (info && info.type) {
       onAddressInfo(info);
     }
     else {
       showHint("addressInfo");
-      user.addressInfo(email, onAddressInfo,
+      user.addressInfo(email, this.forceIssuer, onAddressInfo,
         self.getErrorDialog(errors.addressInfo));
     }
 
@@ -68,11 +81,23 @@ BrowserID.Modules.Authenticate = (function() {
       addressInfo = info;
       dom.removeAttr(EMAIL_SELECTOR, 'disabled');
 
-      if(info.type === "primary") {
+      if ("offline" === info.state) {
+        self.close("primary_offline", info, info);
+      }
+      else if ("primary" === info.type) {
         self.close("primary_user", info, info);
       }
-      else if(info.known) {
+      else if (!!self.forceIssuer && 'default' !== self.forceIssuer) {
+        if (hasPassword.call(self, info)) {
+          enterPasswordState.call(self);
+        } else {
+          createFxAccount.call(self, self.forceIssuer);
+        }
+      }
+      else if (hasPassword.call(self, info)) {
         enterPasswordState.call(self);
+      } else if ("transition_no_password" === info.state) {
+        transitionNoPassword.call(self, info);
       } else {
         createSecondaryUser.call(self);
       }
@@ -86,6 +111,29 @@ BrowserID.Modules.Authenticate = (function() {
 
     if (email) {
       self.close("new_user", { email: email }, { email: email });
+    } else {
+      complete(callback);
+    }
+  }
+
+  function transitionNoPassword(info) {
+    /*jshint validthis: true*/
+    var self = this;
+    var email = getEmail();
+
+    if (email) {
+      var data = { email: email, transition_no_password: true };
+      self.close("transition_no_password", data, data);
+    }
+  }
+
+  function createFxAccount(callback, forceIssuer) {
+    /*jshint validthis: true*/
+    var self=this,
+        email = getEmail();
+    
+    if (email) {
+      self.close("new_fxaccount", { email: email, fxaccount: true }, { email: email });
     } else {
       complete(callback);
     }
@@ -116,7 +164,7 @@ BrowserID.Modules.Authenticate = (function() {
     currentHint = showSelector;
 
     _.each(hints, function(className) {
-      if(className !== showSelector) {
+      if (className !== showSelector) {
         dom.hide("." + className + ":not(." + showSelector + ")");
       }
     });
@@ -134,10 +182,13 @@ BrowserID.Modules.Authenticate = (function() {
   function enterEmailState() {
     /*jshint validthis: true*/
     var self=this;
+
     if (!dom.is(EMAIL_SELECTOR, ":disabled")) {
       self.publish("enter_email");
+      dom.setInner(AUTHENTICATION_LABEL, dom.getInner(EMAIL_LABEL));
       self.submit = checkEmail;
       showHint("start");
+      dom.focus(EMAIL_SELECTOR);
     }
   }
 
@@ -147,13 +198,18 @@ BrowserID.Modules.Authenticate = (function() {
 
     dom.setInner(PASSWORD_SELECTOR, "");
 
-    self.publish("enter_password", addressInfo);
     self.submit = authenticate;
+    var labelSelector = (addressInfo.state === "transition_to_secondary") ? TRANSITION_TO_SECONDARY_LABEL : PASSWORD_LABEL;
+    if (labelSelector === TRANSITION_TO_SECONDARY_LABEL) {
+      dom.setInner(IDP_SELECTOR, helpers.getDomainFromEmail(addressInfo.email));
+    }
+    dom.setInner(AUTHENTICATION_LABEL, dom.getInner(labelSelector));
     showHint("returning", function() {
       dom.focus(PASSWORD_SELECTOR);
     });
 
 
+    self.publish("enter_password", addressInfo);
     complete(callback);
   }
 
@@ -183,6 +239,9 @@ BrowserID.Modules.Authenticate = (function() {
       lastEmail = options.email || "";
 
       var self=this;
+
+      self.forceIssuer = options.forceIssuer;
+      self.allowUnverified = options.allowUnverified;
 
       dom.addClass(BODY_SELECTOR, AUTHENTICATION_CLASS);
       dom.addClass(BODY_SELECTOR, FORM_CLASS);

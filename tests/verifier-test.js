@@ -11,7 +11,6 @@ require('assert'),
 vows = require('vows'),
 start_stop = require('./lib/start-stop.js'),
 wsapi = require('./lib/wsapi.js'),
-db = require('../lib/db.js'),
 config = require('../lib/configuration.js'),
 jwcrypto = require('jwcrypto'),
 http = require('http'),
@@ -237,6 +236,32 @@ function make_basic_tests(new_style) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
         assert.strictEqual(resp.reason, 'audience mismatch: port mismatch');
+      }
+    },
+    "and trying to be clever with wildcard matching in the audience": {
+      topic: function(err, assertion)  {
+        wsapi.post('/verify', {
+          audience: "http://*.net:8080",
+          assertion: assertion
+        }).call(this);
+      },
+      "fails with a helpful error message": function(err, r) {
+        var resp = JSON.parse(r.body);
+        assert.strictEqual(resp.status, 'failure');
+        assert.strictEqual(resp.reason, 'audience mismatch: domain missing');
+      }
+    },
+    "and submitting an audience with an empty domain": {
+      topic: function(err, assertion)  {
+        wsapi.post('/verify', {
+          audience: ":8080",
+          assertion: assertion
+        }).call(this);
+      },
+      "will not result in accidental foot-shooting": function(err, r) {
+        var resp = JSON.parse(r.body);
+        assert.strictEqual(resp.status, 'failure');
+        assert.strictEqual(resp.reason, 'audience mismatch: domain missing');
       }
     },
     "leaving off the audience": {
@@ -833,7 +858,8 @@ function make_other_issuer_tests(new_style) {
       "to return a clear error message": function (err, r) {
         var resp = JSON.parse(r.body);
         assert.strictEqual(resp.status, 'failure');
-        assert.strictEqual(resp.reason, "can't get public key for no.such.domain");
+        assert.strictEqual(resp.reason, "can't get public key for no.such.domain: " +
+                           "no.such.domain is not a browserid primary - non-200 response code to /.well-known/browserid");
       }
     }
   };

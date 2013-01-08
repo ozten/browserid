@@ -50,7 +50,7 @@ BrowserID.signIn = (function() {
 
     if (email) {
       dom.setAttr('#email', 'disabled', 'disabled');
-      user.addressInfo(email, function(info) {
+      user.addressInfo(email, 'default', function(info) {
         dom.removeAttr('#email', 'disabled');
         addressInfo = info;
 
@@ -62,7 +62,7 @@ BrowserID.signIn = (function() {
               title = gettext("Sign In"),
               submit = signInSubmit;
 
-          if (!info.known) {
+          if (info.state === "unknown") {
             bodyClassName = "unknown_secondary";
             showClassName = "vpassword_entry";
             title = gettext("Sign Up"),
@@ -124,7 +124,7 @@ BrowserID.signIn = (function() {
 
   function signUpSubmit(oncomplete) {
     /*jshint validthis: true*/
-    var email = dom.getInner("#email"),
+    var email = helpers.getAndValidateEmail("#email"),
         pass = dom.getInner("#password"),
         vpass = dom.getInner("#vpassword"),
         valid = validation.passwordAndValidationPassword(pass, vpass);
@@ -135,7 +135,7 @@ BrowserID.signIn = (function() {
           // clearing the stored email from localStorage is taken care
           // of in emailSent.
           pageHelpers.emailSent("waitForUserValidation", email,
-            complete.curry(oncomplete, true));
+            complete.curry(oncomplete, email));
         }
         else {
           tooltip.showTooltip("#could_not_add");
@@ -183,7 +183,6 @@ BrowserID.signIn = (function() {
   var Module = bid.Modules.PageModule.extend({
     start: function(options) {
       var self=this;
-
       if(options && options.document) doc = options.document;
       if(options && options.winchan) winchan = options.winchan;
 

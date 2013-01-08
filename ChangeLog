@@ -1,6 +1,19 @@
 current train:
   *
 
+train-2012.11.23:
+  * New selenium tests authored in node.js merged.
+  * Verifier rejects requests that don't supply a proper hostname: bug #806577
+  * (hotfix 2012.12.03) nodejs version in .spec file >= 0.8.12
+  * (hotfix 2012.12.05) when an email is re-staged, ensure the latest password is used: issue #2822
+
+train-2012.11.09:
+  * code cleanup, including jshinting of source and code coverage: #2643, #2272
+  * principal domain now supplied as a query argument when fetching .well-known documents: #2565
+  * embedded IE running in compat mode (like in Lotus Notes) now works for email verification: #2566
+  * (hotfix 2012.11.15) focus email field when dialog loads: #2711
+  * (hotfix 2012.11.28) browserid.spec designates wrong version of nodejs: #2791
+
 train-2012.10.26:
   * Upgrade to Node.JS 0.8.12
   * Fix redirect to /signin after email verification & unneeded password prompt: #1682
@@ -20,6 +33,7 @@ train-2012.10.26:
   * Fix class of sporatic dialog stalls at "Connection to Persona": #2629
   * Fix regression: "Dialog fails to show authenticate screen on Android": #2638
   * Fix regression: siteName not being displayed in dialog: #2634
+  * (hotfix 2012.11.05) fix missing CONTRIBUTORS and renaming of en-US: #2682
 
 train-2012.10.12:
   * Fix IE failing when authenticating with IdP from main site's /signin: #2287

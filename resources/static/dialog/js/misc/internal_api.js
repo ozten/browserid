@@ -61,6 +61,13 @@
    * options.silent defaults to false.
    */
   internal.get = function(origin, callback, options) {
+    if (typeof options === 'string') {
+      // Firefox forbids sending objects across the blood-brain barrier from
+      // gecko into userland JS.  So we just stringify and destringify our
+      // objects when calling from b2g native code.
+      options = JSON.parse(options);
+    }
+
     function complete(assertion) {
       assertion = assertionObjectToString(assertion);
       // If no assertion, give no reason why there was a failure.
@@ -125,7 +132,8 @@
       // User must be authenticated to get an assertion.
       if(authenticated) {
         user.setOrigin(origin);
-        user.getAssertion(email, user.getOrigin(), function(assertion) {
+        var forceIssuer = 'default';
+        user.getAssertion(email, user.getOrigin(), forceIssuer, function(assertion) {
           complete(assertion || null);
         }, complete.curry(null));
       }
@@ -178,7 +186,6 @@
       log('checking and emitting');
       // this will re-certify the user if neccesary
       user.getSilentAssertion(loggedInUser, function(email, assertion) {
-        log('silent return: email, assertion ', email, assertion);
         if (email) {
           // only send login events when the assertion is defined - when
           // the 'loggedInUser' is already logged in, it's false - that is
@@ -210,8 +217,10 @@
     }
 
     function doLogin (params) {
-      log('doLogin', params);
-      callback({ method: 'login', assertion: params });
+      log('doLogin (with silent assertion)');
+      // Through the _internalParams, we signify to any RP callers that are 
+      // interested that this assertion was acquired without user interaction.
+      callback({ method: 'login', assertion: params, _internalParams: {silent: true} });
     }
 
     function doLogout () {

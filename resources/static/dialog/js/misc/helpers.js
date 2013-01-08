@@ -41,14 +41,14 @@
     }
   }
 
-  function getAssertion(email, callback) {
+  function getAssertion(email, forceIssuer, callback) {
     /*jshint validthis:true*/
     var self=this,
         wait = bid.Screens.wait;
 
     wait.show("wait", bid.Wait.generateKey);
 
-    user.getAssertion(email, user.getOrigin(), function(assert) {
+    user.getAssertion(email, user.getOrigin(), forceIssuer, function(assert) {
       assert = assert || null;
       wait.hide();
       self.publish("assertion_generated", {
@@ -82,7 +82,13 @@
     user.createSecondaryUser(email, password, function(status) {
       if (status.success) {
         var info = { email: email, password: password };
-        self.publish("user_staged", info, info);
+        if (status.unverified) {
+          info.type = "secondary";
+          info.unverified = true;
+          self.publish("unverified_created", info, info);
+        } else {
+          self.publish("user_staged", info, info);
+        }
         complete(callback, true);
       }
       else {
@@ -132,7 +138,7 @@
       complete(callback, false);
     }
     else {
-      user.addressInfo(email, function(info) {
+      user.addressInfo(email, user.forceIssuer, function(info) {
         if (info.type === "primary") {
           info = _.extend(info, { email: email, add: true });
           self.publish("primary_user", info, info);
@@ -144,6 +150,14 @@
         }
       }, self.getErrorDialog(errors.addressInfo, callback));
     }
+  }
+
+  function refreshEmailInfo(email, callback) {
+    /*jshint validthis:true*/
+    var self=this;
+    user.addressInfo(email, user.forceIssuer, function (info) {
+      callback(_.extend({ email: email }, info));
+    }, self.getErrorDialog(errors.addressInfo, callback));
   }
 
   function addSecondaryEmail(email, password, callback) {
@@ -173,6 +187,7 @@
     authenticateUser: authenticateUser,
     createUser: createUser,
     addEmail: addEmail,
+    refreshEmailInfo: refreshEmailInfo,
     addSecondaryEmail: addSecondaryEmail,
     resetPassword: resetPassword,
     reverifyEmail: reverifyEmail,

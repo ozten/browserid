@@ -29,7 +29,7 @@
     docMock = winMock.document;
 
     pageHelpers.init({
-      win: winMock
+      window: winMock
     });
 
     options = options || {};
@@ -139,7 +139,7 @@
   });
 
   asyncTest("address with XHR error - show error screen", function() {
-    xhr.useResult("xhrError");
+    xhr.useResult("ajaxError");
     $("#email").val("unregistered@testuser.com");
 
     controller.emailSubmit(function() {
@@ -262,8 +262,8 @@
     $("#email").val("  registered@testuser.com  ");
     $("#password, #vpassword").val("password");
 
-    controller.signUpSubmit(function(status) {
-      ok(status, "signUpSubmit success");
+    controller.signUpSubmit(function(email) {
+      equal(email, "registered@testuser.com", "signUpSubmit success with trimmed email");
       start();
     });
   });

@@ -7,6 +7,7 @@
 require('../lib/baseExceptions').addExceptionHandler();
 
 const
+_ = require('underscore'),
 util = require("util"),
 path = require('path'),
 url = require('url'),
@@ -18,9 +19,15 @@ heartbeat = require('../lib/heartbeat'),
 logger = require('../lib/logging').logger,
 config = require('../lib/configuration'),
 shutdown = require('../lib/shutdown'),
-statsd = require('../lib/statsd');
+statsd = require('../lib/statsd'),
+booleanQuery = require('../lib/boolean-query');
 
 logger.info("verifier server starting up");
+
+if (config.get('env') === 'production') {
+  logger.info('node.js version: ' + process.version + ' at ' + process.execPath);
+  logger.info('configuration: ', JSON.stringify(JSON.parse(config.toString())));
+}
 
 var app = express.createServer();
 
@@ -52,6 +59,7 @@ if (statsd_config && statsd_config.enabled) {
 }
 
 app.use(express.bodyParser());
+app.use(booleanQuery);
 
 try {
   // explicitly relay VAR_PATH to children
@@ -79,6 +87,14 @@ function doVerification(req, resp, next) {
 
   var assertion = (req.query && req.query.assertion) ? req.query.assertion : req. body.assertion;
   var audience = (req.query && req.query.audience) ? req.query.audience : req.body.audience;
+  var forceIssuer = undefined;
+  if (req.query && req.query.forceIssuer) {
+    forceIssuer =  req.query.forceIssuer;
+  } else if (req.body && req.body.forceIssuer) {
+    forceIssuer =  req.body.forceIssuer;
+  }
+  var allowUnverified = (req.query && req.query.allowUnverified) || req.body.allowUnverified;
+  
 
   if (!(assertion && audience)) {
     // why couldn't we extract these guys?  Is it because the request parameters weren't encoded as we expect? GH-643
@@ -109,7 +125,9 @@ function doVerification(req, resp, next) {
   var startTime = new Date();
   cc.enqueue({
     assertion: assertion,
-    audience: audience
+    audience: audience,
+    forceIssuer: forceIssuer,
+    allowUnverified: !!allowUnverified
   }, function (err, r) {
     var reqTime = new Date - startTime;
     statsd.timing('assertion_verification_time', reqTime);
@@ -127,13 +145,11 @@ function doVerification(req, resp, next) {
         rp: audience
       });
     } else {
-      resp.json({
+      resp.json(_.extend(r.success, {
         status : "okay",
-        email : r.success.email,
         audience : audience, // NOTE: we return the audience formatted as the RP provided it, not normalized in any way.
-        expires : new Date(r.success.expires).valueOf(),
-        issuer: r.success.issuer
-      });
+        expires : new Date(r.success.expires).valueOf()
+      }));
 
       metrics.report('verify', {
         result: 'success',

@@ -12,6 +12,7 @@ BrowserID.Network = (function() {
       server_time,
       domain_key_creation_time,
       auth_status,
+      allow_unverified = false,
       code_version,
       userid,
       time_until_delay,
@@ -86,8 +87,9 @@ BrowserID.Network = (function() {
     post({
       url: wsapiName,
       data: data,
-      success: function(status) {
-        complete(onComplete, status.success);
+      success: function(info) {
+        if (info.success) complete(onComplete, info);
+        else complete(onComplete, false);
       },
       error: function(info) {
         // 429 is throttling.
@@ -154,7 +156,8 @@ BrowserID.Network = (function() {
         data: {
           email: email,
           pass: password,
-          ephemeral: !storage.usersComputer.confirmed(email)
+          ephemeral: !storage.usersComputer.confirmed(email),
+          allowUnverified: allow_unverified
         },
         success: handleAuthenticationResponse.curry("password", onComplete, onFailure),
         error: onFailure
@@ -255,7 +258,8 @@ BrowserID.Network = (function() {
       var postData = {
         email: email,
         pass: password,
-        site : origin
+        site : origin,
+        allowUnverified: allow_unverified
       };
       stageAddressForVerification(postData, "/wsapi/stage_user", onComplete, onFailure);
     },
@@ -395,27 +399,6 @@ BrowserID.Network = (function() {
       });
     },
 
-
-    /**
-     * Set the password of the current user.
-     * @method setPassword
-     * @param {string} password - new password.
-     * @param {function} [onComplete] - Callback to call when complete.
-     * @param {function} [onFailure] - Called on XHR failure.
-     */
-    setPassword: function(password, onComplete, onFailure) {
-      post({
-        url: "/wsapi/set_password",
-        data: {
-          password: password
-        },
-        success: function(status) {
-          complete(onComplete, status.success);
-        },
-        error: onFailure
-      });
-    },
-
     /**
      * post interaction data
      * @method setPassword
@@ -455,6 +438,9 @@ BrowserID.Network = (function() {
           newpass: newPassword
         },
         success: function(status) {
+          // successful change of password will upgrade a session to password
+          // level auth
+          if (status) auth_status = "password";
           complete(onComplete, status.success);
         },
         error: onFailure
@@ -552,6 +538,7 @@ BrowserID.Network = (function() {
      * (is it a primary or a secondary)
      * @method addressInfo
      * @param {string} email - Email address to check.
+     * @param {string} issuer - Force a specific Issuer by specifing a domain. null for default.
      * @param {function} [onComplete] - Called with an object on success,
      *   containing these properties:
      *     type: <secondary|primary>
@@ -560,9 +547,11 @@ BrowserID.Network = (function() {
      *     prov: string - url to embed for silent provisioning - present if type is secondary
      * @param {function} [onFailure] - Called on XHR failure.
      */
-    addressInfo: function(email, onComplete, onFailure) {
+    addressInfo: function(email, issuer, onComplete, onFailure) {
+      issuer = issuer || 'default';
       get({
-        url: "/wsapi/address_info?email=" + encodeURIComponent(email),
+        url: "/wsapi/address_info?email=" + encodeURIComponent(email) +
+             "&issuer=" + encodeURIComponent(issuer),
         success: function(data, textStatus, xhr) {
           complete(onComplete, data);
         },
@@ -594,14 +583,16 @@ BrowserID.Network = (function() {
      * Certify the public key for the email address.
      * @method certKey
      */
-    certKey: function(email, pubkey, onComplete, onFailure) {
+    certKey: function(email, pubkey, forceIssuer, onComplete, onFailure) {
+      var opts = 'default' === forceIssuer ? {} : {forceIssuer: forceIssuer};
       post({
         url: "/wsapi/cert_key",
-        data: {
+        data: _.extend(opts, {
           email: email,
           pubkey: pubkey.serialize(),
-          ephemeral: !storage.usersComputer.confirmed(email)
-        },
+          ephemeral: !storage.usersComputer.confirmed(email),
+          allowUnverified: allow_unverified
+        }),
         success: onComplete,
         error: onFailure
       });
@@ -619,10 +610,10 @@ BrowserID.Network = (function() {
           // storage.
           // update our local storage map of email addresses to user ids
           if (userid) {
-            storage.updateEmailToUserIDMapping(userid, _.keys(emails));
+            storage.updateEmailToUserIDMapping(userid, emails.emails);
           }
 
-          onComplete && onComplete(emails);
+          onComplete && onComplete(emails.emails);
         },
         error: onFailure
       });
@@ -749,6 +740,38 @@ BrowserID.Network = (function() {
           complete(onFailure, "user not authenticated");
         }
       }, onFailure);
+    },
+
+    /**
+     * Mark the transition of this email as having been completed.
+     * @method usedAddressAsPrimary
+     * @param {string} [email] - The email that transitioned.
+     * @param {function} [onComplete] - Called whenever complete.
+     * @param {function} [onFailure] - Called on XHR failure.
+     */
+    usedAddressAsPrimary: function(email, onComplete, onFailure) {
+      Network.checkAuth(function authChecked(authenticated) {
+        if (authenticated) {
+          post({
+            url: "/wsapi/used_address_as_primary",
+            data: { email: email },
+            success: onComplete,
+            error: onFailure
+          });
+        } else {
+          complete(onFailure, "user not authenticated");
+        }
+      }, onFailure);
+    },
+
+    /**
+     * Set whether the network should pass allowUnverified=true in
+     * its requests.
+     * @method setAllowUnverified
+     * @param {boolean} [allow] - True or false, to allow.
+     */
+    setAllowUnverified: function(allow) {
+      allow_unverified = allow;
     }
   };
 

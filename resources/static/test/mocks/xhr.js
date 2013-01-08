@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 BrowserID.Mocks.xhr = (function() {
+  "use strict";
+
   var delay = 0,
       contextInfo = {
       server_time: new Date().getTime(),
@@ -12,7 +14,8 @@ BrowserID.Mocks.xhr = (function() {
       auth_level: undefined,
       code_version: "ABC123",
       random_seed: "H+ZgKuhjVckv/H4i0Qvj/JGJEGDVOXSIS5RCOjY9/Bo=",
-      data_sample_rate: 1
+      data_sample_rate: 1,
+      has_password: false
     };
 
   // this cert is meaningless, but it has the right format
@@ -45,6 +48,7 @@ BrowserID.Mocks.xhr = (function() {
       "post /wsapi/authenticate_user incorrectPassword": { success: false },
       "post /wsapi/authenticate_user ajaxError": undefined,
       "post /wsapi/auth_with_assertion primary": { success: true, userid: 1 },
+      "post /wsapi/auth_with_assertion primaryTransition": { success: true, userid: 1 },
       "post /wsapi/auth_with_assertion valid": { success: true, userid: 1 },
       "post /wsapi/auth_with_assertion invalid": { success: false },
       "post /wsapi/auth_with_assertion ajaxError": undefined,
@@ -74,6 +78,7 @@ BrowserID.Mocks.xhr = (function() {
 
       "get /wsapi/password_reset_status?email=registered%40testuser.com pending": { status: "pending" },
       "get /wsapi/password_reset_status?email=registered%40testuser.com complete": { status: "complete", userid: 4 },
+      "get /wsapi/password_reset_status?email=registered%40testuser.com valid": { status: "complete", userid: 4 },
       "get /wsapi/password_reset_status?email=registered%40testuser.com mustAuth": { status: "mustAuth" },
       "get /wsapi/password_reset_status?email=registered%40testuser.com noRegistration": { status: "noRegistration" },
       "get /wsapi/password_reset_status?email=registered%40testuser.com ajaxError": undefined,
@@ -92,6 +97,7 @@ BrowserID.Mocks.xhr = (function() {
 
       "get /wsapi/user_creation_status?email=registered%40testuser.com pending": { status: "pending" },
       "get /wsapi/user_creation_status?email=registered%40testuser.com complete": { status: "complete", userid: 4 },
+      "get /wsapi/user_creation_status?email=registered%40testuser.com valid": { status: "complete", userid: 4 },
       "get /wsapi/user_creation_status?email=registered%40testuser.com mustAuth": { status: "mustAuth" },
       "get /wsapi/user_creation_status?email=registered%40testuser.com noRegistration": { status: "noRegistration" },
       "get /wsapi/user_creation_status?email=registered%40testuser.com ajaxError": undefined,
@@ -107,11 +113,14 @@ BrowserID.Mocks.xhr = (function() {
       "get /wsapi/have_email?email=registered%40testuser.com ajaxError": undefined,
       "get /wsapi/have_email?email=testuser%40testuser.com valid": { email_known: true },
       "get /wsapi/have_email?email=testuser%40testuser.com primary": { email_known: true },
+      "get /wsapi/have_email?email=testuser%40testuser.com primaryTransition": { email_known: true },
       "get /wsapi/have_email?email=testuser%40testuser.com throttle": { email_known: true },
       "get /wsapi/have_email?email=testuser%40testuser.com ajaxError": undefined,
       "get /wsapi/have_email?email=unregistered%40testuser.com valid": { email_known: false },
       "get /wsapi/have_email?email=unregistered%40testuser.com primary": { email_known: false },
+      "get /wsapi/have_email?email=unregistered%40testuser.com primaryUnknown": { email_known: false },
       "get /wsapi/have_email?email=registered%40testuser.com primary": { email_known: true },
+      "get /wsapi/have_email?email=registered%40testuser.com primaryTransition": { email_known: true },
       "post /wsapi/remove_email valid": { success: true },
       "post /wsapi/remove_email invalid": { success: false },
       "post /wsapi/remove_email multiple": { success: true },
@@ -131,38 +140,48 @@ BrowserID.Mocks.xhr = (function() {
       "get /wsapi/email_addition_status?email=registered%40testuser.com mustAuth": { status: "mustAuth" },
       "get /wsapi/email_addition_status?email=registered%40testuser.com noRegistration": { status: "noRegistration" },
       "get /wsapi/email_addition_status?email=registered%40testuser.com ajaxError": undefined,
-      "get /wsapi/list_emails valid": {"testuser@testuser.com":{ type: "secondary", verified: true }},
-      "get /wsapi/list_emails unverified": {"testuser@testuser.com":{ type: "secondary", verified: false }},
+      "get /wsapi/list_emails valid": { success: true, emails: [ "testuser@testuser.com" ] },
+      "get /wsapi/list_emails unverified": { success: true, emails: [ "testuser@testuser.com" ] },
       //"get /wsapi/list_emails known_secondary": {"registered@testuser.com":{ type: "secondary" }},
-      "get /wsapi/list_emails primary": {"testuser@testuser.com": { type: "primary" }},
-      "get /wsapi/list_emails multiple": {"testuser@testuser.com":{}, "testuser2@testuser.com":{}},
-      "get /wsapi/list_emails no_identities": {},
+      "get /wsapi/list_emails primary": { success: true, emails: [ "testuser@testuser.com" ] },
+      "get /wsapi/list_emails multiple": { success: true, emails: [ "testuser@testuser.com", "testuser2@testuser.com" ] },
+      "get /wsapi/list_emails no_identities": { success: true, emails: [] },
+      "get /wsapi/list_emails invalid": undefined,
       "get /wsapi/list_emails ajaxError": undefined,
       // Used in conjunction with registration to do a complete userflow
-      "get /wsapi/list_emails complete": {"registered@testuser.com":{}, "synced_address@testuser.com": {}},
+      "get /wsapi/list_emails complete": { success: true, emails: [ "registered@testuser.com", "synced_address@testuser.com" ] },
       "post /wsapi/set_password valid": { success: true },
       "post /wsapi/set_password invalid": { success: false },
       "post /wsapi/set_password ajaxError": undefined,
       "post /wsapi/update_password valid": { success: true },
       "post /wsapi/update_password incorrectPassword": { success: false },
       "post /wsapi/update_password invalid": undefined,
-      "get /wsapi/address_info?email=unregistered%40testuser.com invalid": undefined,
-      "get /wsapi/address_info?email=unregistered%40testuser.com throttle": { type: "secondary", known: false },
-      "get /wsapi/address_info?email=unregistered%40testuser.com valid": { type: "secondary", known: false },
-      "get /wsapi/address_info?email=unregistered%40testuser.com unknown_secondary": { type: "secondary", known: false },
-      "get /wsapi/address_info?email=unregistered%40testuser.com primary": { type: "primary", auth: "https://auth_url", prov: "https://prov_url" },
+      "get /wsapi/address_info?email=unregistered%40testuser.com&issuer=default invalid": undefined,
+      "get /wsapi/address_info?email=unregistered%40testuser.com&issuer=default throttle": { type: "secondary", state: "unknown" },
+      "get /wsapi/address_info?email=unregistered%40testuser.com&issuer=default valid": { type: "secondary", state: "unknown" },
+      "get /wsapi/address_info?email=unregistered%40testuser.com&issuer=default unknown_secondary": { type: "secondary", state: "unknown" },
+      "get /wsapi/address_info?email=unregistered%40testuser.com&issuer=default primary": { type: "primary", state: "unknown", auth: "https://auth_url", prov: "https://prov_url" },
+      "get /wsapi/address_info?email=unregistered%40testuser.com&issuer=default primaryUnknown": { type: "primary", state: "unknown", auth: "https://auth_url", prov: "https://prov_url" },
 
-      "get /wsapi/address_info?email=registered%40testuser.com valid": { type: "secondary", known: true },
-      "get /wsapi/address_info?email=registered%40testuser.com known_secondary": { type: "secondary", known: true },
-      "get /wsapi/address_info?email=registered%40testuser.com throttle": { type: "secondary", known: true },
-      "get /wsapi/address_info?email=registered%40testuser.com primary": { type: "primary", auth: "https://auth_url", prov: "https://prov_url" },
-      "get /wsapi/address_info?email=registered%40testuser.com mustAuth": { type: "secondary", known: true },
+      "get /wsapi/address_info?email=registered%40testuser.com&issuer=default valid": { type: "secondary", state: "known" },
+      "get /wsapi/address_info?email=registered%40testuser.com&issuer=default known_secondary": { type: "secondary", state: "known" },
+      "get /wsapi/address_info?email=registered%40testuser.com&issuer=default throttle": { type: "secondary", state: "known" },
+      "get /wsapi/address_info?email=registered%40testuser.com&issuer=default primary": { type: "primary", state: "known", auth: "https://auth_url", prov: "https://prov_url" },
+      "get /wsapi/address_info?email=registered%40testuser.com&issuer=default mustAuth": { type: "secondary", state: "known" },
+      "get /wsapi/address_info?email=registered%40testuser.com&issuer=default secondaryTransition": { type: "secondary", state: "transition_to_secondary" },
+      "get /wsapi/address_info?email=registered%40testuser.com&issuer=default secondaryTransitionPassword": { type: "secondary", state: "transition_no_password" },
+      "get /wsapi/address_info?email=registered%40testuser.com&issuer=default primaryTransition": { type: "primary", state: "transition_to_primary", auth: "https://auth_url", prov: "https://prov_url" },
+      "get /wsapi/address_info?email=registered%40testuser.com&issuer=default primaryOffline": { type: "primary", state: "offline", auth: "https://auth_url", prov: "https://prov_url" },
 
-      "get /wsapi/address_info?email=testuser%40testuser.com valid": { type: "secondary", known: true },
-      "get /wsapi/address_info?email=testuser%40testuser.com known_secondary": { type: "secondary", known: true },
-      "get /wsapi/address_info?email=testuser%40testuser.com unknown_secondary": { type: "secondary", known: false },
-      "get /wsapi/address_info?email=testuser%40testuser.com primary": { type: "primary", auth: "https://auth_url", prov: "https://prov_url" },
-      "get /wsapi/address_info?email=testuser%40testuser.com ajaxError": undefined,
+      "get /wsapi/address_info?email=testuser%40testuser.com&issuer=default valid": { type: "secondary", state: "known" },
+      "get /wsapi/address_info?email=testuser2%40testuser.com&issuer=default valid": { type: "secondary", state: "known" },
+      "get /wsapi/address_info?email=testuser%40testuser.com&issuer=default known_secondary": { type: "secondary", state: "known" },
+      "get /wsapi/address_info?email=testuser%40testuser.com&issuer=default unknown_secondary": { type: "secondary", state: "unknown" },
+      "get /wsapi/address_info?email=testuser%40testuser.com&issuer=default primary": { type: "primary", state: "known", auth: "https://auth_url", prov: "https://prov_url" },
+      "get /wsapi/address_info?email=testuser%40testuser.com&issuer=default ajaxError": undefined,
+      "post /wsapi/used_address_as_primary primaryTransition": { success: true },
+      "post /wsapi/used_address_as_primary primaryUnknown": { success: true },
+      "post /wsapi/used_address_as_primary primary": { success: false },
       "post /wsapi/add_email_with_assertion invalid": { success: false },
       "post /wsapi/add_email_with_assertion valid": { success: true },
       "post /wsapi/prolong_session valid": { success: true },
@@ -218,13 +237,20 @@ BrowserID.Mocks.xhr = (function() {
       var responseKey = request.type + " " + request.url + " " + responseName,
           response = xhr.responses[responseKey],
           typeofResponse = typeof response;
+      // Unit tests busted with no feedback? Un-comment this bad boy and look for 'typeofResponse=undefined'
+      // Pull Request #2760 will automate this...
+      //console.log('responseKey=' + responseKey + ' response=' + response + ' typeofResponse=' + typeofResponse);
 
       this.requests[request.url] = request;
+
+      if (!(responseKey in xhr.responses) && responseName !== "ajaxError") {
+        console.error("request for '" + responseKey + "' is not mocked in resources/static/test/cases/xhr.js");
+      }
 
       if (typeofResponse === "function") {
         response(request.success);
       }
-      else if (!(typeofResponse == "number" || typeofResponse == "undefined")) {
+      else if (!(typeofResponse === "number" || typeofResponse === "undefined")) {
         if (request.success) {
           if (delay) {
             // simulate response delay

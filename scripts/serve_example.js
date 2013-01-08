@@ -32,7 +32,6 @@ exampleServer.use(express.bodyParser());
 exampleServer.post('/process_assertion', function(req, res, next) {
   var verifier = urlparse(process.env['VERIFIER_URL']);
   var meth = verifier.scheme === 'http' ? require('http') : require('https');
-
   var vreq = meth.request({
     host: verifier.host,
     port: verifier.port,
@@ -50,7 +49,7 @@ exampleServer.post('/process_assertion', function(req, res, next) {
             if (valid) {
               console.log("assertion verified successfully for email:", email);
             } else {
-              console.log("failed to verify assertion:", verifierResp.reason);
+              console.log("failed to verify assertion:", verifierResp);
             }
             res.json(verifierResp);
           } catch(e) {
@@ -66,10 +65,14 @@ exampleServer.post('/process_assertion', function(req, res, next) {
   // Because this one server runs on multiple different domain names we just use
   // the host parameter out of the request.
   var audience = req.headers['host'] ? req.headers['host'] : localHostname;
-  var data = querystring.stringify({
+  var params = {
     assertion: req.body.assertion,
-    audience: audience
-  });
+    audience: audience,
+    allowUnverified: req.body.allowUnverified
+  };
+  if (!! req.body.forceIssuer) params['forceIssuer'] = req.body.forceIssuer;
+  var data = querystring.stringify(params);
+
   vreq.setHeader('Content-Length', data.length);
   vreq.write(data);
   vreq.end();

@@ -37,7 +37,7 @@ BrowserID.Modules.Dialog = (function() {
   }
 
   function startChannel() {
-    /*jshint validthis:true*/
+    /*jshint validthis: true*/
     var self = this,
         hash = win.location.hash;
 
@@ -77,7 +77,7 @@ BrowserID.Modules.Dialog = (function() {
   }
 
   function onWindowUnload() {
-    /*jshint validthis:true*/
+    /*jshint validthis: true*/
     this.publish("window_unload");
   }
 
@@ -138,6 +138,16 @@ BrowserID.Modules.Dialog = (function() {
       throw new Error("invalid value for rp_api: " + rpAPI);
     }
   }
+
+  function validateStartTime(startTime) {
+    var parsedTime = parseInt(startTime, 10);
+    if (typeof parsedTime !== "number" || isNaN(parsedTime)) {
+      throw new Error("invalid value for start_time: " + startTime);
+    }
+
+    return parsedTime;
+  }
+
 
   function showTOSPP(e) {
     /*jshint validthis:true*/
@@ -240,6 +250,14 @@ BrowserID.Modules.Dialog = (function() {
 
       // verify params
       try {
+        var startTime = paramsFromRP.start_time;
+        if (startTime) {
+          startTime = validateStartTime(startTime);
+          self.publish("start_time", startTime);
+        }
+
+        self.publish("channel_established");
+
         var rpAPI = paramsFromRP.rp_api;
         if (rpAPI) {
           // throws if an invalid rp_api value
@@ -287,6 +305,27 @@ BrowserID.Modules.Dialog = (function() {
           user.setReturnTo(returnTo);
         }
 
+        // forceIssuer is used by the Marketplace to disable primary support
+        // and replace fxos.login.persona.org as the issuer of certs
+        if (paramsFromRP.forceIssuer) {
+          // TODO check for valid domain
+          params.forceIssuer = paramsFromRP.forceIssuer;
+	}
+
+        // forceAuthentication is used by the Marketplace to ensure that the
+        // user knows the password to this account. We ignore any active session.
+        if (paramsFromRP.forceAuthentication &&
+            true === paramsFromRP.forceAuthentication) {
+          params.forceAuthentication = true;
+        }
+
+        // allowUnverified means that the user doesn't need to have
+        // verified their email address in order to send an assertion.
+        // if the user *has* verified, it will be a verified assertion.
+        if (paramsFromRP.allowUnverified) {
+          params.allowUnverified = true;
+        }
+
         if (hash.indexOf("#AUTH_RETURN") === 0) {
           var primaryParams = JSON.parse(win.sessionStorage.primaryVerificationFlow);
           params.email = primaryParams.email;
@@ -317,7 +356,18 @@ BrowserID.Modules.Dialog = (function() {
       // XXX Perhaps put this into the state machine.
       self.bind(win, "unload", onWindowUnload);
 
-      self.publish("start", params);
+      function start() {
+        self.publish("start", params);
+      }
+
+      if (params.type === "primary") {
+        // at this point, we will only have type of primary if we're
+        // returning from #AUTH_RETURN. Mark that email as having been
+        // used as a primary, in case it used to be a secondary.
+        user.usedAddressAsPrimary(params.email, start, start);
+      } else {
+        start();
+      }
     }
 
     // BEGIN TESTING API
